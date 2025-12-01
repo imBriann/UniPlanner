@@ -1,259 +1,169 @@
 /**
- * Pantalla de Login
- * Permite al usuario iniciar sesión en la aplicación
+ * App.js - Punto de entrada de la aplicación
+ * Configura navegación y providers globales
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Alert
-} from 'react-native';
-import { useAuth } from './src/context/AuthContext';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+// Context
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 
-  const handleLogin = async () => {
-    // Validaciones
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
-    }
+// Screens
+import LoginScreen from './src/screens/LoginScreen';
+import RegistroScreen from './src/screens/RegistroScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import TareasScreen from './src/screens/TareasScreen';
+import CalendarioScreen from './src/screens/CalendarioScreen';
+import MateriasScreen from './src/screens/MateriasScreen';
+import PerfilScreen from './src/screens/PerfilScreen';
 
-    if (!email.includes('@')) {
-      Alert.alert('Error', 'Por favor ingresa un email válido');
-      return;
-    }
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
-    setLoading(true);
-
-    try {
-      await login(email, password);
-      // La navegación se maneja automáticamente por el navegador principal
-    } catch (error) {
-      console.error('Error en login:', error);
-      Alert.alert(
-        'Error de inicio de sesión',
-        error.userMessage || 'Credenciales incorrectas. Verifica tu email y contraseña.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
+/**
+ * Navegador de Tabs (cuando el usuario está autenticado)
+ */
+function MainTabs() {
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          switch (route.name) {
+            case 'Inicio':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
+            case 'Tareas':
+              iconName = focused ? 'checkbox' : 'checkbox-outline';
+              break;
+            case 'Calendario':
+              iconName = focused ? 'calendar' : 'calendar-outline';
+              break;
+            case 'Materias':
+              iconName = focused ? 'book' : 'book-outline';
+              break;
+            case 'Perfil':
+              iconName = focused ? 'person' : 'person-outline';
+              break;
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#4F46E5',
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarStyle: {
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
+        headerStyle: {
+          backgroundColor: '#4F46E5',
+        },
+        headerTintColor: 'white',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      })}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Logo/Header */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="school" size={80} color="#4F46E5" />
-          </View>
-          <Text style={styles.title}>Sistema Académico</Text>
-          <Text style={styles.subtitle}>Universidad de Pamplona</Text>
-        </View>
-
-        {/* Formulario */}
-        <View style={styles.form}>
-          {/* Email */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email institucional"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
-          </View>
-
-          {/* Contraseña */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Contraseña"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              editable={!loading}
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
-            >
-              <Ionicons
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
-                color="#9CA3AF"
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Botón de Login */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <>
-                <Text style={styles.buttonText}>Iniciar Sesión</Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Enlace a Registro */}
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => navigation.navigate('Registro')}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>
-              ¿No tienes cuenta? <Text style={styles.linkTextBold}>Regístrate aquí</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Ingeniería de Sistemas
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <Tab.Screen 
+        name="Inicio" 
+        component={HomeScreen}
+        options={{
+          title: 'Inicio',
+        }}
+      />
+      <Tab.Screen 
+        name="Tareas" 
+        component={TareasScreen}
+        options={{
+          title: 'Mis Tareas',
+        }}
+      />
+      <Tab.Screen 
+        name="Calendario" 
+        component={CalendarioScreen}
+        options={{
+          title: 'Calendario',
+        }}
+      />
+      <Tab.Screen 
+        name="Materias" 
+        component={MateriasScreen}
+        options={{
+          title: 'Mis Materias',
+        }}
+      />
+      <Tab.Screen 
+        name="Perfil" 
+        component={PerfilScreen}
+        options={{
+          title: 'Mi Perfil',
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  form: {
-    width: '100%',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
-  },
-  eyeIcon: {
-    padding: 8,
-  },
-  button: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonDisabled: {
-    backgroundColor: '#9CA3AF',
-    shadowOpacity: 0,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 8,
-  },
-  linkContainer: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  linkTextBold: {
-    color: '#4F46E5',
-    fontWeight: '600',
-  },
-  footer: {
-    marginTop: 40,
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#9CA3AF',
-    fontSize: 12,
-  },
-});
+/**
+ * Navegador principal que decide qué mostrar
+ */
+function AppNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {user ? (
+          // Usuario autenticado - mostrar tabs principales
+          <Stack.Screen name="Main" component={MainTabs} />
+        ) : (
+          // Usuario no autenticado - mostrar login/registro
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen 
+              name="RegistroScreen"  // <--- IMPORTANTE: Debe coincidir con lo que pusimos en el Login
+              component={RegistroScreen} 
+              options={{
+                headerShown: true,
+                title: 'Crear Cuenta',
+                // ... resto de tus opciones
+              }}
+            />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+/**
+ * Componente raíz de la aplicación
+ */
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppNavigator />
+    </AuthProvider>
+  );
+}

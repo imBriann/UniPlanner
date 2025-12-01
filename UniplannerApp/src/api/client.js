@@ -1,70 +1,49 @@
-/**
- * Cliente HTTP configurado con Axios
- * Maneja automáticamente tokens JWT y errores
- */
-
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// IMPORTANTE: Cambia esta URL según tu entorno
-// Para emulador Android: http://10.0.2.2:5000/api
-// Para emulador iOS: http://localhost:5000/api
-// Para dispositivo físico: http://TU_IP_LOCAL:5000/api (ejemplo: http://192.168.1.10:5000/api)
-const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.0.8:5000'  // Cambiar según tu caso
-  : 'https://tu-api-produccion.com/api';
+// ⚠️ CAMBIA ESTO POR TU IP LOCAL (No uses localhost)
+const API_URL = 'http://192.168.0.8:5000/api'; 
 
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+// Crear instancia de Axios
+const api = axios.create({
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 segundos
+  timeout: 5000, // 5 segundos de espera máxima
 });
 
-// Interceptor para agregar token automáticamente
-apiClient.interceptors.request.use(
-  async (config) => {
-    try {
-      const token = await SecureStore.getItemAsync('userToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Error obteniendo token:', error);
+// Función para Login
+export const loginUser = async (email, password) => {
+  try {
+    const response = await api.post('/auth/login', { email, password });
+    return { status: response.status, data: response.data };
+  } catch (error) {
+    console.error("Error login:", error);
+    // Axios maneja los errores diferente a fetch
+    if (error.response) {
+      return { status: error.response.status, data: error.response.data };
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+    return { status: 500, error: 'Error de conexión con el servidor' };
   }
-);
+};
 
-// Interceptor para manejar errores globalmente
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado o inválido
-      try {
-        await SecureStore.deleteItemAsync('userToken');
-        await SecureStore.deleteItemAsync('userData');
-      } catch (e) {
-        console.error('Error limpiando sesión:', e);
-      }
+// Función para Registro
+export const registerUser = async (userData) => {
+  try {
+    const response = await api.post('/auth/registro', userData);
+    return { status: response.status, data: response.data };
+  } catch (error) {
+    console.error("Error registro:", error);
+    if (error.response) {
+      return { status: error.response.status, data: error.response.data };
     }
-    
-    // Mejorar mensaje de error
-    const errorMessage = error.response?.data?.error || 
-                        error.message || 
-                        'Error de conexión';
-    
-    return Promise.reject({
-      ...error,
-      userMessage: errorMessage
-    });
+    return { status: 500, error: 'Error de conexión con el servidor' };
   }
-);
+};
 
-export default apiClient;
-export { API_BASE_URL };
+export const saveToken = async (token) => {
+  await SecureStore.setItemAsync('user_token', token);
+};
+
+export default api;
