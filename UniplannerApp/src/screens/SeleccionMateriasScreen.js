@@ -1,0 +1,593 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  TextInput,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import api from '../api/client';
+
+export default function SeleccionMateriasScreen({ route, navigation }) {
+  const { userData } = route.params; // Datos del registro
+  
+  const [loading, setLoading] = useState(true);
+  const [pensum, setPensum] = useState({});
+  const [busqueda, setBusqueda] = useState('');
+  
+  // Materias seleccionadas
+  const [materiasAprobadas, setMateriasAprobadas] = useState([]);
+  const [materiasCursando, setMateriasCursando] = useState([]);
+  
+  // Paso actual (1: aprobadas, 2: cursando)
+  const [paso, setPaso] = useState(1);
+
+  useEffect(() => {
+    cargarPensum();
+  }, []);
+
+  const cargarPensum = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/cursos');
+      const materias = response.data.cursos || [];
+      
+      // Agrupar por semestre
+      const agrupadasPorSemestre = materias.reduce((acc, materia) => {
+        if (!acc[materia.semestre]) {
+          acc[materia.semestre] = [];
+        }
+        acc[materia.semestre].push(materia);
+        return acc;
+      }, {});
+      
+      setPensum(agrupadasPorSemestre);
+    } catch (error) {
+      console.error('Error cargando pensum:', error);
+      Alert.alert('Error', 'No se pudo cargar el pensum');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleMateriaAprobada = (codigo) => {
+    if (materiasAprobadas.includes(codigo)) {
+      setMateriasAprobadas(materiasAprobadas.filter(c => c !== codigo));
+    } else {
+      setMateriasAprobadas([...materiasAprobadas, codigo]);
+    }
+  };
+
+  const toggleMateriaCursando = (codigo, materia) => {
+    // Verificar prerequisitos
+    const prerequisitosFaltantes = (materia.requisitos || []).filter(
+      req => !materiasAprobadas.includes(req)
+    );
+
+    if (prerequisitosFaltantes.length > 0) {
+      // Obtener nombres de prerequisitos
+      const nombresFaltantes = prerequisitosFaltantes.map(req => {
+        const materiaReq = Object.values(pensum).flat().find(m => m.codigo === req);
+        return materiaReq?.nombre || req;
+      }).join('\n• ');
+
+      Alert.alert(
+        '⚠️ Prerequisitos Faltantes',
+        `No puedes cursar esta materia porque te faltan los siguientes prerequisitos:\n\n• ${nombresFaltantes}`,
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
+
+    // Si tiene los prerequisitos, permitir selección
+    if (materiasCursando.includes(codigo)) {
+      setMateriasCursando(materiasCursando.filter(c => c !== codigo));
+    } else {
+      setMateriasCursando([...materiasCursando, codigo]);
+    }
+  };
+
+  const validarYContinuar = () => {
+    if (paso === 1) {
+      // Pasar al paso 2 (materias cursando)
+      setPaso(2);
+    } else {
+      // Finalizar registro
+      finalizarRegistro();
+    }
+  };
+
+  const finalizarRegistro = async () => {
+    try {
+      setLoading(true);
+
+      // Crear el usuario con las materias seleccionadas
+      const datosCompletos = {
+        ...userData,
+        materias_aprobadas: materiasAprobadas,
+        materias_cursando: materiasCursando,
+      };
+
+      const response = await api.post('/auth/registro', datosCompletos);
+
+      if (response.status === 201 && response.data.success) {
+        Alert.alert(
+          '🎉 ¡Registro Exitoso!',
+          'Tu cuenta ha sido creada correctamente.',
+          [
+            {
+              text: 'Iniciar Sesión',
+              onPress: () => navigation.navigate('Login')
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', response.data?.error || 'No se pudo completar el registro');
+      }
+    } catch (error) {
+      console.error('Error en registro:', error);
+      Alert.alert('Error', 'Ocurrió un error al crear tu cuenta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saltarPaso = () => {
+    if (paso === 1) {
+      Alert.alert(
+        'Saltar paso',
+        '¿No has aprobado ninguna materia todavía?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sí, continuar', onPress: () => setPaso(2) }
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Saltar paso',
+        '¿No estás cursando ninguna materia este semestre?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sí, finalizar', onPress: finalizarRegistro }
+        ]
+      );
+    }
+  };
+
+  const renderMateria = (materia) => {
+    const seleccionada = paso === 1 
+      ? materiasAprobadas.includes(materia.codigo)
+      : materiasCursando.includes(materia.codigo);
+
+    // En paso 2, verificar si tiene prerequisitos cumplidos
+    let puedeSeleccionar = true;
+    let prerequisitosFaltantes = [];
+
+    if (paso === 2) {
+      prerequisitosFaltantes = (materia.requisitos || []).filter(
+        req => !materiasAprobadas.includes(req)
+      );
+      puedeSeleccionar = prerequisitosFaltantes.length === 0;
+    }
+
+    return (
+      <TouchableOpacity
+        key={materia.codigo}
+        style={[
+          styles.materiaCard,
+          seleccionada && styles.materiaSeleccionada,
+          !puedeSeleccionar && paso === 2 && styles.materiaBloqueada,
+        ]}
+        onPress={() => {
+          if (paso === 1) {
+            toggleMateriaAprobada(materia.codigo);
+          } else {
+            toggleMateriaCursando(materia.codigo, materia);
+          }
+        }}
+        disabled={!puedeSeleccionar && paso === 2}
+      >
+        <View style={styles.materiaHeader}>
+          <View style={styles.checkboxContainer}>
+            {seleccionada ? (
+              <Ionicons name="checkmark-circle" size={24} color="#4F46E5" />
+            ) : (
+              <Ionicons 
+                name={puedeSeleccionar || paso === 1 ? "ellipse-outline" : "lock-closed"} 
+                size={24} 
+                color={puedeSeleccionar || paso === 1 ? "#D1D5DB" : "#EF4444"} 
+              />
+            )}
+          </View>
+
+          <View style={styles.materiaInfo}>
+            <Text style={styles.materiaCodigo}>{materia.codigo}</Text>
+            <Text style={styles.materiaNombre} numberOfLines={2}>
+              {materia.nombre}
+            </Text>
+            
+            <View style={styles.materiaFooter}>
+              <View style={styles.badge}>
+                <Ionicons name="school-outline" size={12} color="#6B7280" />
+                <Text style={styles.badgeText}>{materia.creditos} créd.</Text>
+              </View>
+              
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>Sem. {materia.semestre}</Text>
+              </View>
+
+              {materia.requisitos && materia.requisitos.length > 0 && (
+                <View style={[
+                  styles.badge,
+                  !puedeSeleccionar && paso === 2 && styles.badgeBloqueado
+                ]}>
+                  <Ionicons 
+                    name="git-branch-outline" 
+                    size={12} 
+                    color={!puedeSeleccionar && paso === 2 ? "#EF4444" : "#6B7280"} 
+                  />
+                  <Text style={[
+                    styles.badgeText,
+                    !puedeSeleccionar && paso === 2 && styles.badgeTextBloqueado
+                  ]}>
+                    {materia.requisitos.length} req.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderSemestre = (semestre) => {
+    const materias = pensum[semestre] || [];
+    
+    // Filtrar por búsqueda
+    const materiasFiltradas = busqueda.trim() === ''
+      ? materias
+      : materias.filter(m => 
+          m.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          m.codigo.toLowerCase().includes(busqueda.toLowerCase())
+        );
+
+    if (materiasFiltradas.length === 0) return null;
+
+    return (
+      <View key={semestre} style={styles.semestreContainer}>
+        <View style={styles.semestreHeader}>
+          <Ionicons name="school" size={20} color="#4F46E5" />
+          <Text style={styles.semestreTitulo}>Semestre {semestre}</Text>
+        </View>
+        
+        <View style={styles.materiasLista}>
+          {materiasFiltradas.map(renderMateria)}
+        </View>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+        <Text style={styles.loadingText}>
+          {paso === 1 ? 'Cargando pensum...' : 'Finalizando registro...'}
+        </Text>
+      </View>
+    );
+  }
+
+  const seleccionadas = paso === 1 ? materiasAprobadas.length : materiasCursando.length;
+
+  return (
+    <View style={styles.container}>
+      {/* Header con progreso */}
+      <View style={styles.header}>
+        <View style={styles.pasoIndicador}>
+          <View style={[styles.pasoDot, paso >= 1 && styles.pasoDotActivo]}>
+            <Text style={[styles.pasoDotText, paso >= 1 && styles.pasoDotTextoActivo]}>1</Text>
+          </View>
+          <View style={[styles.pasoLinea, paso >= 2 && styles.pasoLineaActiva]} />
+          <View style={[styles.pasoDot, paso >= 2 && styles.pasoDotActivo]}>
+            <Text style={[styles.pasoDotText, paso >= 2 && styles.pasoDotTextoActivo]}>2</Text>
+          </View>
+        </View>
+
+        <Text style={styles.titulo}>
+          {paso === 1 ? '📚 Materias Aprobadas' : '📖 Materias Cursando'}
+        </Text>
+        <Text style={styles.subtitulo}>
+          {paso === 1 
+            ? 'Selecciona las materias que ya has aprobado'
+            : 'Selecciona las materias que estás cursando este semestre'
+          }
+        </Text>
+
+        <View style={styles.contadorContainer}>
+          <Ionicons name="checkmark-circle" size={20} color="#4F46E5" />
+          <Text style={styles.contadorTexto}>
+            {seleccionadas} {paso === 1 ? 'aprobadas' : 'cursando'}
+          </Text>
+        </View>
+
+        {/* Barra de búsqueda */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar materia..."
+            value={busqueda}
+            onChangeText={setBusqueda}
+          />
+          {busqueda.length > 0 && (
+            <TouchableOpacity onPress={() => setBusqueda('')}>
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Lista de materias */}
+      <ScrollView style={styles.scrollView}>
+        {Object.keys(pensum)
+          .sort((a, b) => parseInt(a) - parseInt(b))
+          .map(renderSemestre)}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Botones de acción */}
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={styles.saltarButton}
+          onPress={saltarPaso}
+        >
+          <Text style={styles.saltarButtonText}>Saltar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.continuarButton}
+          onPress={validarYContinuar}
+        >
+          <Text style={styles.continuarButtonText}>
+            {paso === 1 ? 'Continuar' : 'Finalizar Registro'}
+          </Text>
+          <Ionicons name="arrow-forward" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: '#6B7280',
+    fontSize: 14,
+  },
+  header: {
+    backgroundColor: 'white',
+    padding: 20,
+    paddingTop: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  pasoIndicador: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  pasoDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pasoDotActivo: {
+    backgroundColor: '#4F46E5',
+  },
+  pasoDotText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#9CA3AF',
+  },
+  pasoDotTextoActivo: {
+    color: 'white',
+  },
+  pasoLinea: {
+    width: 60,
+    height: 2,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 8,
+  },
+  pasoLineaActiva: {
+    backgroundColor: '#4F46E5',
+  },
+  titulo: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitulo: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  contadorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 16,
+    gap: 6,
+  },
+  contadorTexto: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4F46E5',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  semestreContainer: {
+    marginTop: 16,
+    marginHorizontal: 16,
+  },
+  semestreHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#E5E7EB',
+  },
+  semestreTitulo: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  materiasLista: {
+    gap: 8,
+  },
+  materiaCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+  },
+  materiaSeleccionada: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+  },
+  materiaBloqueada: {
+    opacity: 0.5,
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  materiaHeader: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  checkboxContainer: {
+    justifyContent: 'center',
+  },
+  materiaInfo: {
+    flex: 1,
+  },
+  materiaCodigo: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  materiaNombre: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  materiaFooter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    gap: 4,
+  },
+  badgeBloqueado: {
+    backgroundColor: '#FEE2E2',
+  },
+  badgeText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  badgeTextBloqueado: {
+    color: '#EF4444',
+  },
+  footer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  saltarButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  saltarButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  continuarButton: {
+    flex: 2,
+    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  continuarButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+});

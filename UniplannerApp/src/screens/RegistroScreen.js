@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, ScrollView, 
-  StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform 
+  StyleSheet, Alert, KeyboardAvoidingView, Platform 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { registerUser } from '../api/client'; // Importamos la nueva función
 
 export default function RegistroScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -23,7 +22,7 @@ export default function RegistroScreen({ navigation }) {
     setForm({ ...form, [key]: value });
   };
 
-  const handleRegistro = async () => {
+  const handleRegistro = () => {
     // 1. Validaciones básicas
     if (!form.nombre || !form.apellido || !form.email || !form.password || !form.semestre_actual) {
       Alert.alert('Error', 'Por favor completa todos los campos');
@@ -35,25 +34,10 @@ export default function RegistroScreen({ navigation }) {
       return;
     }
 
-    setLoading(true);
-
-    // 2. Enviar datos al Backend
-    const result = await registerUser(form);
-
-    setLoading(false);
-
-    if (result.status === 201 && result.data.success) {
-      Alert.alert(
-        '¡Registro Exitoso! 🎉',
-        'Tu cuenta ha sido creada. Ahora puedes iniciar sesión.',
-        [
-          { text: 'Ir al Login', onPress: () => navigation.navigate('Login') }
-        ]
-      );
-    } else {
-      const errorMsg = result.data?.error || 'No se pudo registrar el usuario';
-      Alert.alert('Error', errorMsg);
-    }
+    // 2. Ir a la pantalla de selección de materias (OBLIGATORIO)
+    navigation.navigate('SeleccionMaterias', {
+      userData: form
+    });
   };
 
   return (
@@ -141,16 +125,21 @@ export default function RegistroScreen({ navigation }) {
             ))}
           </View>
 
+          {/* Aviso importante */}
+          <View style={styles.avisoContainer}>
+            <Ionicons name="information-circle" size={24} color="#3B82F6" />
+            <Text style={styles.avisoTexto}>
+              En el siguiente paso deberás seleccionar las materias que has aprobado y las que estás cursando actualmente.
+            </Text>
+          </View>
+
           <TouchableOpacity 
             style={styles.button} 
             onPress={handleRegistro}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>Registrarse</Text>
-            )}
+            <Text style={styles.buttonText}>Continuar</Text>
+            <Ionicons name="arrow-forward" size={20} color="white" />
           </TouchableOpacity>
           
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.linkButton}>
@@ -184,11 +173,27 @@ const styles = StyleSheet.create({
   optionSelected: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
   optionText: { color: '#6B7280' },
   optionTextSelected: { color: 'white', fontWeight: 'bold' },
+  avisoContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+  },
+  avisoTexto: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1E40AF',
+    lineHeight: 18,
+  },
   button: {
     backgroundColor: '#4F46E5', borderRadius: 12, height: 56,
-    justifyContent: 'center', alignItems: 'center', marginTop: 24,
-    shadowColor: '#4F46E5', shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    marginTop: 24, shadowColor: '#4F46E5', shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4, gap: 8,
   },
   buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   linkButton: { marginTop: 20, alignItems: 'center' },

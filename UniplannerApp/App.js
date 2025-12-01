@@ -1,6 +1,6 @@
 /**
  * App.js - Punto de entrada de la aplicación
- * Configura navegación y providers globales
+ * Sistema completo de gestión académica UniPlanner
  */
 
 import React from 'react';
@@ -21,6 +21,8 @@ import TareasScreen from './src/screens/TareasScreen';
 import CalendarioScreen from './src/screens/CalendarioScreen';
 import MateriasScreen from './src/screens/MateriasScreen';
 import PerfilScreen from './src/screens/PerfilScreen';
+import SemaforoScreen from './src/screens/SemaforoScreen';
+import SeleccionMateriasScreen from './src/screens/SeleccionMateriasScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -48,9 +50,14 @@ function MainTabs() {
             case 'Materias':
               iconName = focused ? 'book' : 'book-outline';
               break;
+            case 'Semaforo':
+              iconName = focused ? 'pulse' : 'pulse-outline';
+              break;
             case 'Perfil':
               iconName = focused ? 'person' : 'person-outline';
               break;
+            default:
+              iconName = 'help-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -107,6 +114,13 @@ function MainTabs() {
         }}
       />
       <Tab.Screen 
+        name="Semaforo" 
+        component={SemaforoScreen}
+        options={{
+          title: 'Semáforo',
+        }}
+      />
+      <Tab.Screen 
         name="Perfil" 
         component={PerfilScreen}
         options={{
@@ -125,7 +139,12 @@ function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: '#F9FAFB' 
+      }}>
         <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
@@ -142,12 +161,34 @@ function AppNavigator() {
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen 
-              name="RegistroScreen"  // <--- IMPORTANTE: Debe coincidir con lo que pusimos en el Login
+              name="RegistroScreen"
               component={RegistroScreen} 
               options={{
                 headerShown: true,
                 title: 'Crear Cuenta',
-                // ... resto de tus opciones
+                headerStyle: {
+                  backgroundColor: '#4F46E5',
+                },
+                headerTintColor: 'white',
+                headerTitleStyle: {
+                  fontWeight: 'bold',
+                },
+              }}
+            />
+            <Stack.Screen 
+              name="SeleccionMaterias"
+              component={SeleccionMateriasScreen} 
+              options={{
+                headerShown: true,
+                title: 'Seleccionar Materias',
+                headerStyle: {
+                  backgroundColor: '#4F46E5',
+                },
+                headerTintColor: 'white',
+                headerTitleStyle: {
+                  fontWeight: 'bold',
+                },
+                headerLeft: () => null, // Evitar que vuelvan atrás
               }}
             />
           </>
