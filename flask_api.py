@@ -131,6 +131,8 @@ def registro():
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 
+# En flask_api.py
+
 @app.route('/api/auth/login', methods=['POST'])
 def login():
     """
@@ -139,6 +141,7 @@ def login():
     """
     try:
         data = request.get_json()
+        print(f"📩 Intento de login: {data.get('email')}") # LOG DE DEPURACIÓN
         
         if not data.get('email') or not data.get('password'):
             return jsonify({'error': 'Email y contraseña requeridos'}), 400
@@ -146,9 +149,20 @@ def login():
         usuario = Usuario.autenticar(data['email'], data['password'])
         
         if not usuario:
+            print("❌ Usuario no encontrado o contraseña incorrecta")
             return jsonify({'error': 'Credenciales incorrectas'}), 401
         
+        print(f"✅ Usuario encontrado: {usuario.id}")
+        
+        # Generar token
         token = generar_token(usuario.id)
+        
+        # --- CORRECCIÓN IMPORTANTE ---
+        # Si el token es de tipo 'bytes', lo convertimos a 'string'
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+        
+        print(f"🔑 Token generado: {token[:10]}...") 
         
         return jsonify({
             'success': True,
@@ -165,8 +179,11 @@ def login():
         }), 200
         
     except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
+        # ESTO ES LO MÁS IMPORTANTE: Imprimir el error real en la terminal
+        import traceback
+        traceback.print_exc()
+        print(f"🔥 ERROR CRÍTICO: {str(e)}")
+        return jsonify({'error': f'Error interno: {str(e)}'}), 500
 
 # ========== ENDPOINTS DE CURSOS ==========
 

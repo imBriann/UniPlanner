@@ -13,7 +13,7 @@ from typing import List, Optional, Dict, Tuple
 
 class DatabaseModel:
     """Clase base con utilidades comunes"""
-    DB_NAME = 'academic_system.db'
+    DB_NAME = 'BaseUniPlanner.db'
     
     @staticmethod
     def get_connection():

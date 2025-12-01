@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 class DatabaseManager:
     """Gestor de base de datos SQLite con seguridad"""
     
-    def __init__(self, db_name='academic_system.db'):
+    def __init__(self, db_name='BaseUniPlanner.db'):
         self.db_name = db_name
         self.conn = None
     
