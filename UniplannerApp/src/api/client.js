@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // ⚠️ CAMBIA ESTO POR TU IP LOCAL (ejecuta 'ipconfig' en Windows o 'ifconfig' en Mac/Linux)
-const API_URL = 'http://192.168.0.8:5000/api'; 
+const API_URL = 'https://uniplanner-api.onrender.com/api/'; 
 
 // Crear instancia de Axios
 const api = axios.create({

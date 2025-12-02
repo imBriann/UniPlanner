@@ -1,25 +1,37 @@
 """
-Modelos POO con SQLite - Sistema Académico Unipamplona
-Incluye encriptación y el nuevo flujo de registro
+Modelos POO con PostgreSQL - Sistema Académico Unipamplona
+Compatible con Render y ambientes de producción
 """
 
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import hashlib
 import json
+import os
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Tuple
 
 # ========== CLASE BASE ==========
 
 class DatabaseModel:
-    """Clase base con utilidades comunes"""
-    DB_NAME = 'BaseUniPlanner.db'
+    """Clase base con utilidades comunes para PostgreSQL"""
     
     @staticmethod
     def get_connection():
-        conn = sqlite3.connect(DatabaseModel.DB_NAME)
-        conn.row_factory = sqlite3.Row
-        return conn
+        """Obtiene conexión a PostgreSQL desde variable de entorno"""
+        database_url = os.environ.get('DATABASE_URL')
+        
+        if not database_url:
+            raise ValueError(
+                "DATABASE_URL no está configurada. "
+                "Configúrala como variable de entorno."
+            )
+        
+        # Render usa postgresql:// pero psycopg2 necesita postgres://
+        if database_url.startswith('postgresql://'):
+            database_url = database_url.replace('postgresql://', 'postgres://', 1)
+        
+        return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     
     @staticmethod
     def encriptar_password(password: str) -> str:
@@ -30,7 +42,7 @@ class DatabaseModel:
 # ========== USUARIO ==========
 
 class Usuario(DatabaseModel):
-    """Modelo de Usuario con registro mejorado"""
+    """Modelo de Usuario"""
     
     def __init__(self, id=None, nombre=None, apellido=None, email=None,
                  carrera=None, semestre_actual=None, tipo_estudio=None):
@@ -51,74 +63,56 @@ class Usuario(DatabaseModel):
               semestre_actual: int, tipo_estudio: str,
               materias_aprobadas: List[str] = None,
               materias_cursando: List[str] = None) -> 'Usuario':
-        """
-        Crea un nuevo usuario con su perfil académico completo
-        
-        Args:
-            nombre: Nombre del estudiante
-            apellido: Apellido del estudiante
-            email: Email institucional
-            password: Contraseña (será encriptada)
-            semestre_actual: Semestre en curso (1-10)
-            tipo_estudio: 'intensivo', 'moderado' o 'leve'
-            materias_aprobadas: Lista de códigos de materias ya aprobadas
-            materias_cursando: Lista de códigos de materias actuales
-        """
+        """Crea un nuevo usuario"""
         conn = cls.get_connection()
         cursor = conn.cursor()
         
         try:
-            # Crear usuario
             password_hash = cls.encriptar_password(password)
+            
             cursor.execute('''
             INSERT INTO usuarios 
             (nombre, apellido, email, password_hash, semestre_actual, tipo_estudio, carrera)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
             ''', (nombre, apellido, email, password_hash, semestre_actual, 
                   tipo_estudio, 'Ingeniería de Sistemas'))
             
-            usuario_id = cursor.lastrowid
+            usuario_id = cursor.fetchone()['id']
             
             # Registrar materias aprobadas
             if materias_aprobadas:
                 for codigo in materias_aprobadas:
                     cursor.execute('''
                     INSERT INTO historial_academico (usuario_id, curso_codigo, estado)
-                    VALUES (?, ?, 'aprobado')
+                    VALUES (%s, %s, 'aprobado')
+                    ON CONFLICT (usuario_id, curso_codigo) DO NOTHING
                     ''', (usuario_id, codigo))
             
             # Registrar materias actuales
             if materias_cursando:
                 for codigo in materias_cursando:
                     cursor.execute('''
-                    INSERT INTO materias_actuales (usuario_id, curso_codigo, semestre_cursando)
-                    VALUES (?, ?, ?)
-                    ''', (usuario_id, codigo, semestre_actual))
-            
-            # Crear configuración de estudio
-            horas_map = {
-                'intensivo': 6.0,
-                'moderado': 4.0,
-                'leve': 2.5
-            }
-            cursor.execute('''
-            INSERT INTO configuracion_estudio 
-            (usuario_id, tipo_estudio, horas_diarias, dias_semana, hora_inicio_preferida, hora_fin_preferida)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', (usuario_id, tipo_estudio, horas_map[tipo_estudio], 
-                  json.dumps([1,2,3,4,5]), '08:00', '22:00'))
+                    INSERT INTO materias_actuales (usuario_id, curso_codigo)
+                    VALUES (%s, %s)
+                    ON CONFLICT (usuario_id, curso_codigo) DO NOTHING
+                    ''', (usuario_id, codigo))
             
             conn.commit()
             return cls.obtener_por_id(usuario_id)
             
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
+            conn.rollback()
             raise ValueError(f"El email '{email}' ya está registrado")
+        except Exception as e:
+            conn.rollback()
+            raise e
         finally:
             conn.close()
     
     @classmethod
     def autenticar(cls, email: str, password: str) -> Optional['Usuario']:
-        """Autentica un usuario por email y contraseña"""
+        """Autentica un usuario"""
         conn = cls.get_connection()
         cursor = conn.cursor()
         
@@ -126,18 +120,10 @@ class Usuario(DatabaseModel):
         
         cursor.execute('''
         SELECT * FROM usuarios 
-        WHERE email = ? AND password_hash = ? AND activo = 1
+        WHERE email = %s AND password_hash = %s AND activo = TRUE
         ''', (email, password_hash))
         
         row = cursor.fetchone()
-        
-        if row:
-            # Actualizar última sesión
-            cursor.execute('''
-            UPDATE usuarios SET ultima_sesion = CURRENT_TIMESTAMP WHERE id = ?
-            ''', (row['id'],))
-            conn.commit()
-        
         conn.close()
         
         if row:
@@ -158,7 +144,7 @@ class Usuario(DatabaseModel):
         conn = cls.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM usuarios WHERE id = ?', (usuario_id,))
+        cursor.execute('SELECT * FROM usuarios WHERE id = %s', (usuario_id,))
         row = cursor.fetchone()
         conn.close()
         
@@ -175,14 +161,14 @@ class Usuario(DatabaseModel):
         return None
     
     def obtener_materias_actuales(self) -> List['Curso']:
-        """Obtiene las materias que está cursando actualmente"""
+        """Obtiene las materias que está cursando"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
         SELECT c.* FROM cursos c
         INNER JOIN materias_actuales ma ON c.codigo = ma.curso_codigo
-        WHERE ma.usuario_id = ? AND ma.estado = 'activo'
+        WHERE ma.usuario_id = %s AND ma.estado = 'activo'
         ORDER BY c.nombre
         ''', (self.id,))
         
@@ -199,7 +185,7 @@ class Usuario(DatabaseModel):
         cursor.execute('''
         SELECT c.* FROM cursos c
         INNER JOIN historial_academico ha ON c.codigo = ha.curso_codigo
-        WHERE ha.usuario_id = ? AND ha.estado = 'aprobado'
+        WHERE ha.usuario_id = %s AND ha.estado = 'aprobado'
         ORDER BY c.semestre, c.nombre
         ''', (self.id,))
         
@@ -208,26 +194,29 @@ class Usuario(DatabaseModel):
         
         return [Curso.from_row(row) for row in rows]
     
+    def calcular_creditos_acumulados(self) -> int:
+        """Calcula el total de créditos aprobados"""
+        materias = self.obtener_materias_aprobadas()
+        return sum(m.creditos for m in materias)
+    
     def puede_inscribir_materia(self, codigo_materia: str) -> Tuple[bool, str]:
-        """
-        Verifica si puede inscribir una materia
-        Returns: (puede, razon)
-        """
+        """Verifica si puede inscribir una materia"""
         curso = Curso.obtener_por_codigo(codigo_materia)
         if not curso:
             return False, "Materia no encontrada"
         
-        # Verificar si ya la aprobó
         materias_aprobadas = [c.codigo for c in self.obtener_materias_aprobadas()]
         if codigo_materia in materias_aprobadas:
             return False, "Ya aprobaste esta materia"
         
-        # Verificar si ya la está cursando
         materias_actuales = [c.codigo for c in self.obtener_materias_actuales()]
         if codigo_materia in materias_actuales:
             return False, "Ya estás cursando esta materia"
         
-        # Verificar requisitos
+        creditos_acumulados = self.calcular_creditos_acumulados()
+        if curso.creditos_requisitos > creditos_acumulados:
+            return False, f"Necesitas {curso.creditos_requisitos} créditos aprobados (tienes {creditos_acumulados})"
+        
         if curso.requisitos:
             for req in curso.requisitos:
                 if req not in materias_aprobadas:
@@ -237,7 +226,7 @@ class Usuario(DatabaseModel):
         return True, "OK"
     
     def inscribir_materia(self, codigo_materia: str) -> bool:
-        """Inscribe una materia actual"""
+        """Inscribe una materia"""
         puede, razon = self.puede_inscribir_materia(codigo_materia)
         if not puede:
             raise ValueError(razon)
@@ -245,24 +234,29 @@ class Usuario(DatabaseModel):
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
-        INSERT INTO materias_actuales (usuario_id, curso_codigo, semestre_cursando)
-        VALUES (?, ?, ?)
-        ''', (self.id, codigo_materia, self.semestre_actual))
-        
-        conn.commit()
-        conn.close()
-        return True
+        try:
+            cursor.execute('''
+            INSERT INTO materias_actuales (usuario_id, curso_codigo)
+            VALUES (%s, %s)
+            ''', (self.id, codigo_materia))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
     
     def cancelar_materia(self, codigo_materia: str) -> bool:
-        """Cancela una materia actual"""
+        """Cancela una materia"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
         UPDATE materias_actuales 
-        SET estado = 'cancelado', fecha_cancelacion = CURRENT_TIMESTAMP
-        WHERE usuario_id = ? AND curso_codigo = ? AND estado = 'activo'
+        SET estado = 'cancelado'
+        WHERE usuario_id = %s AND curso_codigo = %s AND estado = 'activo'
         ''', (self.id, codigo_materia))
         
         affected = cursor.rowcount
@@ -276,13 +270,13 @@ class Usuario(DatabaseModel):
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        query = 'SELECT * FROM tareas WHERE usuario_id = ?'
+        query = 'SELECT * FROM tareas WHERE usuario_id = %s'
         params = [self.id]
         
         if solo_pendientes:
-            query += ' AND completada = 0'
+            query += ' AND completada = FALSE'
         
-        query += ' ORDER BY fecha_limite ASC, prioridad DESC'
+        query += ' ORDER BY fecha_limite ASC'
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
@@ -291,8 +285,8 @@ class Usuario(DatabaseModel):
         return [Tarea.from_row(row) for row in rows]
     
     def agregar_tarea(self, curso_codigo: str, titulo: str, tipo: str,
-                     fecha_limite: str, horas_estimadas: float,
-                     dificultad: int, descripcion: str = "",
+                     fecha_limite: str, horas_estimadas: float = 4,
+                     dificultad: int = 3, descripcion: str = "",
                      hora_limite: str = None) -> 'Tarea':
         """Agrega una nueva tarea"""
         return Tarea.crear(
@@ -301,34 +295,8 @@ class Usuario(DatabaseModel):
             titulo=titulo,
             descripcion=descripcion,
             tipo=tipo,
-            fecha_limite=fecha_limite,
-            hora_limite=hora_limite,
-            horas_estimadas=horas_estimadas,
-            dificultad=dificultad
+            fecha_limite=fecha_limite
         )
-    
-    def obtener_configuracion_estudio(self) -> Dict:
-        """Obtiene la configuración de estudio del usuario"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-        SELECT * FROM configuracion_estudio WHERE usuario_id = ?
-        ''', (self.id,))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if row:
-            return {
-                'tipo_estudio': row['tipo_estudio'],
-                'horas_diarias': row['horas_diarias'],
-                'dias_semana': json.loads(row['dias_semana']),
-                'hora_inicio': row['hora_inicio_preferida'],
-                'hora_fin': row['hora_fin_preferida'],
-                'descansos': row['descansos_entre_sesiones']
-            }
-        return None
     
     def obtener_estadisticas(self) -> Dict:
         """Calcula estadísticas del usuario"""
@@ -346,7 +314,6 @@ class Usuario(DatabaseModel):
             'total_tareas': len(tareas),
             'pendientes': len(tareas_pendientes),
             'completadas': len(tareas_completadas),
-            'horas_pendientes': sum(t.horas_estimadas for t in tareas_pendientes),
             'materias_actuales': len(materias_actuales),
             'materias_aprobadas': len(materias_aprobadas),
             'creditos_actuales': total_creditos_actuales,
@@ -358,30 +325,33 @@ class Usuario(DatabaseModel):
 # ========== CURSO ==========
 
 class Curso(DatabaseModel):
-    """Modelo de Curso del pensum"""
+    """Modelo de Curso"""
     
     def __init__(self, codigo: str, nombre: str, creditos: int,
-                 semestre: int, iit: int = 0, hp: int = 0,
-                 requisitos: List[str] = None):
+                 semestre: int, ht: int = 0, hp: int = 0,
+                 requisitos: List[str] = None, creditos_requisitos: int = 0):
         self.codigo = codigo
         self.nombre = nombre
         self.creditos = creditos
         self.semestre = semestre
-        self.iit = iit
+        self.ht = ht
         self.hp = hp
         self.requisitos = requisitos or []
+        self.creditos_requisitos = creditos_requisitos
         self.peso = creditos
     
     @classmethod
     def from_row(cls, row) -> 'Curso':
+        requisitos = row['requisitos'] if isinstance(row['requisitos'], list) else []
         return cls(
             codigo=row['codigo'],
             nombre=row['nombre'],
             creditos=row['creditos'],
             semestre=row['semestre'],
-            iit=row['iit'],
+            ht=row['ht'],
             hp=row['hp'],
-            requisitos=json.loads(row['requisitos']) if row['requisitos'] else []
+            requisitos=requisitos,
+            creditos_requisitos=row['creditos_requisitos']
         )
     
     @classmethod
@@ -389,7 +359,7 @@ class Curso(DatabaseModel):
         conn = cls.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM cursos WHERE codigo = ?', (codigo,))
+        cursor.execute('SELECT * FROM cursos WHERE codigo = %s', (codigo,))
         row = cursor.fetchone()
         conn.close()
         
@@ -401,7 +371,7 @@ class Curso(DatabaseModel):
         cursor = conn.cursor()
         
         cursor.execute('''
-        SELECT * FROM cursos WHERE semestre = ? ORDER BY nombre
+        SELECT * FROM cursos WHERE semestre = %s ORDER BY nombre
         ''', (semestre,))
         
         rows = cursor.fetchall()
@@ -429,7 +399,7 @@ class Curso(DatabaseModel):
         
         cursor.execute('''
         SELECT * FROM cursos 
-        WHERE codigo LIKE ? OR nombre LIKE ?
+        WHERE codigo ILIKE %s OR nombre ILIKE %s
         ORDER BY semestre, nombre
         ''', (f'%{termino}%', f'%{termino}%'))
         
@@ -437,23 +407,16 @@ class Curso(DatabaseModel):
         conn.close()
         
         return [cls.from_row(row) for row in rows]
-    
-    def __repr__(self):
-        return f"Curso({self.codigo}, {self.nombre}, {self.creditos} créditos)"
 
 
 # ========== TAREA ==========
 
 class Tarea(DatabaseModel):
-    """Modelo de Tarea mejorado"""
+    """Modelo de Tarea"""
     
     def __init__(self, id: int, usuario_id: int, curso_codigo: str,
                  titulo: str, descripcion: str, tipo: str,
-                 fecha_limite: datetime, hora_limite: str,
-                 horas_estimadas: float, dificultad: int,
-                 prioridad: int, completada: bool,
-                 porcentaje_completado: int, notas: str,
-                 fecha_creacion: datetime, fecha_completada: datetime):
+                 fecha_limite: datetime, completada: bool):
         self.id = id
         self.usuario_id = usuario_id
         self.curso_codigo = curso_codigo
@@ -461,17 +424,15 @@ class Tarea(DatabaseModel):
         self.descripcion = descripcion
         self.tipo = tipo
         self.fecha_limite = fecha_limite
-        self.hora_limite = hora_limite
-        self.horas_estimadas = horas_estimadas
-        self.dificultad = dificultad
-        self.prioridad = prioridad
         self.completada = completada
-        self.porcentaje_completado = porcentaje_completado
-        self.notas = notas
-        self.fecha_creacion = fecha_creacion
-        self.fecha_completada = fecha_completada
         
         self.curso = Curso.obtener_por_codigo(curso_codigo)
+        
+        # Atributos ficticios para compatibilidad
+        self.horas_estimadas = 4
+        self.dificultad = 3
+        self.prioridad = 0
+        self.porcentaje_completado = 100 if completada else 0
     
     @classmethod
     def from_row(cls, row) -> 'Tarea':
@@ -482,50 +443,43 @@ class Tarea(DatabaseModel):
             titulo=row['titulo'],
             descripcion=row['descripcion'] or "",
             tipo=row['tipo'],
-            fecha_limite=datetime.strptime(row['fecha_limite'], '%Y-%m-%d %H:%M:%S'),
-            hora_limite=row['hora_limite'],
-            horas_estimadas=row['horas_estimadas'],
-            dificultad=row['dificultad'],
-            prioridad=row['prioridad'],
-            completada=bool(row['completada']),
-            porcentaje_completado=row['porcentaje_completado'],
-            notas=row['notas'] or "",
-            fecha_creacion=datetime.strptime(row['fecha_creacion'], '%Y-%m-%d %H:%M:%S'),
-            fecha_completada=datetime.strptime(row['fecha_completada'], '%Y-%m-%d %H:%M:%S') if row.get('fecha_completada') else None
+            fecha_limite=row['fecha_limite'],
+            completada=bool(row['completada'])
         )
     
     @classmethod
     def crear(cls, usuario_id: int, curso_codigo: str, titulo: str,
-              descripcion: str, tipo: str, fecha_limite: str,
-              horas_estimadas: float, dificultad: int,
-              hora_limite: str = None) -> 'Tarea':
+              descripcion: str, tipo: str, fecha_limite: str) -> 'Tarea':
         conn = cls.get_connection()
         cursor = conn.cursor()
         
-        # Convertir fecha a datetime
-        if ' ' not in fecha_limite:
-            fecha_limite = f"{fecha_limite} 23:59:59"
-        
-        cursor.execute('''
-        INSERT INTO tareas 
-        (usuario_id, curso_codigo, titulo, descripcion, tipo, fecha_limite,
-         hora_limite, horas_estimadas, dificultad, prioridad)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-        ''', (usuario_id, curso_codigo, titulo, descripcion, tipo,
-              fecha_limite, hora_limite, horas_estimadas, dificultad))
-        
-        tarea_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        return cls.obtener_por_id(tarea_id)
+        try:
+            if ' ' not in fecha_limite:
+                fecha_limite = f"{fecha_limite} 23:59:59"
+            
+            cursor.execute('''
+            INSERT INTO tareas 
+            (usuario_id, curso_codigo, titulo, descripcion, tipo, fecha_limite)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+            ''', (usuario_id, curso_codigo, titulo, descripcion, tipo, fecha_limite))
+            
+            tarea_id = cursor.fetchone()['id']
+            conn.commit()
+            
+            return cls.obtener_por_id(tarea_id)
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
     
     @classmethod
     def obtener_por_id(cls, tarea_id: int) -> Optional['Tarea']:
         conn = cls.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM tareas WHERE id = ?', (tarea_id,))
+        cursor.execute('SELECT * FROM tareas WHERE id = %s', (tarea_id,))
         row = cursor.fetchone()
         conn.close()
         
@@ -535,46 +489,27 @@ class Tarea(DatabaseModel):
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
-        UPDATE tareas 
-        SET completada = 1, porcentaje_completado = ?, fecha_completada = CURRENT_TIMESTAMP
-        WHERE id = ?
-        ''', (porcentaje, self.id))
-        
+        cursor.execute('UPDATE tareas SET completada = TRUE WHERE id = %s', (self.id,))
         conn.commit()
         conn.close()
         
         self.completada = True
-        self.porcentaje_completado = porcentaje
     
     def actualizar_progreso(self, porcentaje: int):
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-        UPDATE tareas SET porcentaje_completado = ? WHERE id = ?
-        ''', (porcentaje, self.id))
-        
-        conn.commit()
-        conn.close()
-        
-        self.porcentaje_completado = porcentaje
+        """Método dummy para compatibilidad"""
+        pass
     
     def eliminar(self):
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('DELETE FROM tareas WHERE id = ?', (self.id,))
+        cursor.execute('DELETE FROM tareas WHERE id = %s', (self.id,))
         conn.commit()
         conn.close()
     
     def dias_restantes(self) -> int:
         delta = self.fecha_limite - datetime.now()
         return delta.days
-    
-    def __repr__(self):
-        estado = "✓" if self.completada else "○"
-        return f"{estado} {self.titulo} ({self.curso.nombre}) - {self.fecha_limite.date()}"
 
 
 # ========== CALENDARIO ==========
@@ -582,17 +517,17 @@ class Tarea(DatabaseModel):
 class CalendarioInstitucional(DatabaseModel):
     """Calendario académico institucional"""
     
-    def __init__(self, id: int, nombre_evento: str, descripcion: str,
+    def __init__(self, id: int, nombre_evento: str,
                  fecha_inicio: datetime, fecha_fin: datetime,
-                 tipo: str, semestre: str, icono: str, color: str):
+                 tipo: str, semestre: str, color: str):
         self.id = id
         self.nombre_evento = nombre_evento
-        self.descripcion = descripcion
+        self.descripcion = ""
         self.fecha_inicio = fecha_inicio
         self.fecha_fin = fecha_fin
         self.tipo = tipo
         self.semestre = semestre
-        self.icono = icono
+        self.icono = "📅"
         self.color = color
     
     @classmethod
@@ -600,12 +535,10 @@ class CalendarioInstitucional(DatabaseModel):
         return cls(
             id=row['id'],
             nombre_evento=row['nombre_evento'],
-            descripcion=row['descripcion'],
-            fecha_inicio=datetime.strptime(row['fecha_inicio'], '%Y-%m-%d'),
-            fecha_fin=datetime.strptime(row['fecha_fin'], '%Y-%m-%d') if row['fecha_fin'] else None,
+            fecha_inicio=row['fecha_inicio'],
+            fecha_fin=row['fecha_fin'],
             tipo=row['tipo'],
             semestre=row['semestre'],
-            icono=row['icono'],
             color=row['color']
         )
     
@@ -614,13 +547,12 @@ class CalendarioInstitucional(DatabaseModel):
         conn = cls.get_connection()
         cursor = conn.cursor()
         
-        fecha_limite = (datetime.now() + timedelta(days=dias)).strftime('%Y-%m-%d')
-        
         cursor.execute('''
         SELECT * FROM calendario_institucional 
-        WHERE fecha_inicio >= date('now') AND fecha_inicio <= ?
+        WHERE fecha_inicio >= CURRENT_DATE 
+        AND fecha_inicio <= CURRENT_DATE + INTERVAL '%s days'
         ORDER BY fecha_inicio ASC
-        ''', (fecha_limite,))
+        ''', (dias,))
         
         rows = cursor.fetchall()
         conn.close()
@@ -634,7 +566,7 @@ class CalendarioInstitucional(DatabaseModel):
         
         cursor.execute('''
         SELECT * FROM calendario_institucional 
-        WHERE semestre = ? OR semestre IS NULL
+        WHERE semestre = %s OR semestre IS NULL
         ORDER BY fecha_inicio ASC
         ''', (semestre,))
         
