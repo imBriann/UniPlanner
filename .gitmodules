@@ -1,0 +1,3 @@
+[submodule "BDUniPlanner"]
+	path = BDUniPlanner
+	url = https://github.com/imBriann/uniplanner-backend.git
