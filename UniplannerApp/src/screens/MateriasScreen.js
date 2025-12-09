@@ -1,29 +1,81 @@
+/**
+ * MateriasScreen.js - CORREGIDO ✅
+ * - Botón cancelar funcional con confirmación moderna
+ * - Modal con información completa de materias
+ * - Sistema de créditos requisitos visible
+ * - Créditos de libre elección integrado
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Modal,
-  TextInput,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, Alert, Modal, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 
+// 🆕 COMPONENTE DE DIÁLOGO MODERNO
+const ModernDialog = ({ visible, onClose, title, message, type = 'info', onConfirm }) => {
+  if (!visible) return null;
+
+  const config = {
+    info: { icon: 'information-circle', color: '#3B82F6', bg: '#EFF6FF' },
+    success: { icon: 'checkmark-circle', color: '#10B981', bg: '#D1FAE5' },
+    warning: { icon: 'alert-circle', color: '#F59E0B', bg: '#FEF3C7' },
+    error: { icon: 'close-circle', color: '#EF4444', bg: '#FEE2E2' },
+  };
+
+  const { icon, color, bg } = config[type];
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.dialogOverlay}>
+        <View style={styles.dialogContainer}>
+          <View style={[styles.dialogHeader, { backgroundColor: bg }]}>
+            <Ionicons name={icon} size={48} color={color} />
+            <Text style={styles.dialogTitle}>{title}</Text>
+          </View>
+          
+          <View style={styles.dialogBody}>
+            <Text style={styles.dialogMessage}>{message}</Text>
+          </View>
+
+          <View style={styles.dialogFooter}>
+            {onConfirm ? (
+              <>
+                <TouchableOpacity style={styles.dialogButtonSecondary} onPress={onClose}>
+                  <Text style={styles.dialogButtonTextSecondary}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.dialogButtonDanger} onPress={onConfirm}>
+                  <Text style={styles.dialogButtonTextPrimary}>Confirmar</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity style={styles.dialogButtonPrimary} onPress={onClose}>
+                <Text style={styles.dialogButtonTextPrimary}>Entendido</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function MateriasScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tab, setTab] = useState('actuales'); // 'actuales', 'aprobadas', 'buscar'
+  const [tab, setTab] = useState('actuales');
   const [materiasActuales, setMateriasActuales] = useState([]);
   const [materiasAprobadas, setMateriasAprobadas] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [materiaSeleccionada, setMateriaSeleccionada] = useState(null);
+  
+  // 🆕 Estado para diálogo de confirmación
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState({});
 
   useEffect(() => {
     cargarMaterias();
@@ -42,7 +94,7 @@ export default function MateriasScreen() {
       }
     } catch (error) {
       console.error('Error cargando materias:', error);
-      Alert.alert('Error', 'No se pudieron cargar las materias');
+      showDialog('Error', 'No se pudieron cargar las materias', 'error');
     } finally {
       setLoading(false);
     }
@@ -56,7 +108,7 @@ export default function MateriasScreen() {
 
   const buscarMaterias = async () => {
     if (!busqueda.trim()) {
-      Alert.alert('Error', 'Ingresa un término de búsqueda');
+      showDialog('Error', 'Ingresa un término de búsqueda', 'warning');
       return;
     }
 
@@ -65,7 +117,7 @@ export default function MateriasScreen() {
       setResultadosBusqueda(response.data.resultados || []);
     } catch (error) {
       console.error('Error buscando materias:', error);
-      Alert.alert('Error', 'No se pudo realizar la búsqueda');
+      showDialog('Error', 'No se pudo realizar la búsqueda', 'error');
     }
   };
 
@@ -76,44 +128,46 @@ export default function MateriasScreen() {
       setModalVisible(true);
     } catch (error) {
       console.error('Error cargando detalles:', error);
-      Alert.alert('Error', 'No se pudieron cargar los detalles');
+      showDialog('Error', 'No se pudieron cargar los detalles', 'error');
     }
   };
 
   const inscribirMateria = async (codigo) => {
     try {
       await api.post('/usuario/materias/inscribir', { codigo_materia: codigo });
-      Alert.alert('Éxito', 'Materia inscrita correctamente');
+      showDialog('¡Éxito!', 'Materia inscrita correctamente', 'success');
       setModalVisible(false);
       cargarMaterias();
     } catch (error) {
       console.error('Error inscribiendo materia:', error);
-      Alert.alert('Error', error.response?.data?.error || 'No se pudo inscribir la materia');
+      showDialog('Error', error.response?.data?.error || 'No se pudo inscribir la materia', 'error');
     }
   };
 
-  const cancelarMateria = async (codigo) => {
-    Alert.alert(
-      'Confirmar cancelación',
-      '¿Estás seguro de que deseas cancelar esta materia?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.post('/usuario/materias/cancelar', { codigo_materia: codigo });
-              Alert.alert('Éxito', 'Materia cancelada');
-              cargarMaterias();
-            } catch (error) {
-              console.error('Error cancelando materia:', error);
-              Alert.alert('Error', 'No se pudo cancelar la materia');
-            }
-          },
-        },
-      ]
-    );
+  // 🆕 FUNCIÓN MEJORADA DE CANCELAR MATERIA
+  const cancelarMateria = (codigo, nombre) => {
+    setDialogConfig({
+      title: 'Confirmar Cancelación',
+      message: `¿Estás seguro de que deseas cancelar "${nombre}"?\n\nPodrás reactivarla antes de que termine el semestre.`,
+      type: 'warning',
+      onConfirm: async () => {
+        setDialogVisible(false);
+        try {
+          await api.post('/usuario/materias/cancelar', { codigo_materia: codigo });
+          showDialog('Materia Cancelada', 'La materia ha sido cancelada exitosamente', 'success');
+          cargarMaterias();
+        } catch (error) {
+          console.error('Error cancelando materia:', error);
+          showDialog('Error', 'No se pudo cancelar la materia', 'error');
+        }
+      }
+    });
+    setDialogVisible(true);
+  };
+
+  const showDialog = (title, message, type = 'info', onConfirm = null) => {
+    setDialogConfig({ title, message, type, onConfirm });
+    setDialogVisible(true);
   };
 
   const renderMateria = (materia, tipo = 'actual') => (
@@ -140,7 +194,7 @@ export default function MateriasScreen() {
           style={styles.cancelarButton}
           onPress={(e) => {
             e.stopPropagation();
-            cancelarMateria(materia.codigo);
+            cancelarMateria(materia.codigo, materia.nombre);
           }}
         >
           <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
@@ -245,6 +299,7 @@ export default function MateriasScreen() {
               value={busqueda}
               onChangeText={setBusqueda}
               onSubmitEditing={buscarMaterias}
+              placeholderTextColor="#9CA3AF"
             />
             {busqueda.length > 0 && (
               <TouchableOpacity onPress={() => setBusqueda('')}>
@@ -307,7 +362,6 @@ export default function MateriasScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
           style={[styles.tab, tab === 'actuales' && styles.tabActivo]}
@@ -352,10 +406,9 @@ export default function MateriasScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Contenido */}
       {renderContenido()}
 
-      {/* Modal Detalles */}
+      {/* 🆕 Modal de Detalles Mejorado */}
       {materiaSeleccionada && (
         <Modal visible={modalVisible} animationType="slide" transparent={true}>
           <View style={styles.modalOverlay}>
@@ -388,23 +441,19 @@ export default function MateriasScreen() {
                   <Text style={styles.detailValue}>{materiaSeleccionada.semestre}</Text>
                 </View>
 
-                {materiaSeleccionada.iit > 0 && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>IIT:</Text>
-                    <Text style={styles.detailValue}>{materiaSeleccionada.iit}h</Text>
-                  </View>
-                )}
-
-                {materiaSeleccionada.hp > 0 && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>HP:</Text>
-                    <Text style={styles.detailValue}>{materiaSeleccionada.hp}h</Text>
+                {/* 🆕 Créditos Requisitos */}
+                {materiaSeleccionada.creditos_requisitos > 0 && (
+                  <View style={[styles.detailRow, styles.detailHighlight]}>
+                    <Text style={styles.detailLabel}>Créditos Requisitos:</Text>
+                    <Text style={[styles.detailValue, styles.detailValueHighlight]}>
+                      {materiaSeleccionada.creditos_requisitos} créd. requeridos
+                    </Text>
                   </View>
                 )}
 
                 {materiaSeleccionada.requisitos && materiaSeleccionada.requisitos.length > 0 && (
                   <View style={styles.detailSection}>
-                    <Text style={styles.detailSectionTitle}>Requisitos:</Text>
+                    <Text style={styles.detailSectionTitle}>📋 Requisitos:</Text>
                     {materiaSeleccionada.requisitos.map((req, index) => (
                       <Text key={index} style={styles.requisito}>
                         • {req}
@@ -416,307 +465,117 @@ export default function MateriasScreen() {
 
               <View style={styles.modalFooter}>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.modalButtonPrimary]}
+                  style={styles.modalButtonCancel}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonTextCancel}>Cerrar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalButtonAction}
                   onPress={() => {
-                    inscribirMateria(materiaSeleccionada.codigo);
+                    if (materiasActuales.find(m => m.codigo === materiaSeleccionada.codigo)) {
+                      // Es una materia actual, mostrar opción de cancelar
+                      setModalVisible(false);
+                      cancelarMateria(materiaSeleccionada.codigo, materiaSeleccionada.nombre);
+                    } else {
+                      // No está cursando, inscribir
+                      inscribirMateria(materiaSeleccionada.codigo);
+                    }
                   }}
                 >
-                  <Ionicons name="add-circle-outline" size={20} color="white" />
-                  <Text style={styles.modalButtonText}>Inscribir Materia</Text>
+                  <Ionicons 
+                    name={materiasActuales.find(m => m.codigo === materiaSeleccionada.codigo) ? "close-circle-outline" : "add-circle-outline"} 
+                    size={20} 
+                    color="white" 
+                  />
+                  <Text style={styles.modalButtonTextAction}>
+                    {materiasActuales.find(m => m.codigo === materiaSeleccionada.codigo) ? 'Cancelar Materia' : 'Inscribir Materia'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
         </Modal>
       )}
+
+      {/* 🆕 Diálogo Moderno */}
+      <ModernDialog
+        visible={dialogVisible}
+        onClose={() => setDialogVisible(false)}
+        {...dialogConfig}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  tabActivo: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#4F46E5',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#9CA3AF',
-  },
-  tabTextoActivo: {
-    color: '#4F46E5',
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  statItem: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    elevation: 2,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  materiasGrid: {
-    padding: 16,
-    gap: 12,
-  },
-  materiaCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  materiaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  semestreBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  semestreBadgeAprobada: {
-    backgroundColor: '#F0FDF4',
-  },
-  semestreText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4F46E5',
-  },
-  creditosBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  creditosText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4F46E5',
-  },
-  materiaCode: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginBottom: 4,
-  },
-  materiaNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  cancelarButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    marginTop: 8,
-  },
-  cancelarText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#EF4444',
-  },
-  inscribirButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    marginTop: 8,
-  },
-  inscribirText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#4F46E5',
-  },
-  aprobadaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    marginTop: 8,
-  },
-  aprobadaText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#10B981',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6B7280',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginTop: 8,
-  },
-  buscarContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-    elevation: 2,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  searchButton: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  searchButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resultadosScroll: {
-    flex: 1,
-    marginTop: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  detailValue: {
-    fontSize: 14,
-    color: '#1F2937',
-    fontWeight: '600',
-  },
-  detailSection: {
-    marginTop: 16,
-  },
-  detailSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  requisito: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  modalFooter: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  modalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  modalButtonPrimary: {
-    backgroundColor: '#4F46E5',
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-  },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  tabsContainer: { flexDirection: 'row', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  tabActivo: { borderBottomWidth: 2, borderBottomColor: '#4F46E5' },
+  tabText: { fontSize: 14, fontWeight: '500', color: '#9CA3AF' },
+  tabTextoActivo: { color: '#4F46E5', fontWeight: '600' },
+  scrollView: { flex: 1 },
+  statsContainer: { flexDirection: 'row', padding: 16, gap: 12 },
+  statItem: { flex: 1, backgroundColor: 'white', padding: 16, borderRadius: 12, alignItems: 'center', elevation: 2 },
+  statNumber: { fontSize: 32, fontWeight: 'bold', color: '#4F46E5' },
+  statLabel: { fontSize: 12, color: '#6B7280', marginTop: 4, textAlign: 'center' },
+  materiasGrid: { padding: 16, gap: 12 },
+  materiaCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  materiaHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  semestreBadge: { backgroundColor: '#EEF2FF', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
+  semestreBadgeAprobada: { backgroundColor: '#F0FDF4' },
+  semestreText: { fontSize: 12, fontWeight: '600', color: '#4F46E5' },
+  creditosBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F9FAFB', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
+  creditosText: { fontSize: 12, fontWeight: '600', color: '#4F46E5' },
+  materiaCode: { fontSize: 12, color: '#9CA3AF', marginBottom: 4 },
+  materiaNombre: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 12 },
+  cancelarButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, marginTop: 8 },
+  cancelarText: { fontSize: 14, fontWeight: '500', color: '#EF4444' },
+  inscribirButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, marginTop: 8 },
+  inscribirText: { fontSize: 14, fontWeight: '500', color: '#4F46E5' },
+  aprobadaBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, marginTop: 8 },
+  aprobadaText: { fontSize: 14, fontWeight: '500', color: '#10B981' },
+  emptyState: { alignItems: 'center', paddingVertical: 60 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#6B7280', marginTop: 16 },
+  emptySubtext: { fontSize: 14, color: '#9CA3AF', marginTop: 8 },
+  buscarContainer: { flex: 1, padding: 16 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, gap: 12, elevation: 2 },
+  searchInput: { flex: 1, fontSize: 16 },
+  searchButton: { backgroundColor: '#4F46E5', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
+  searchButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  resultadosScroll: { flex: 1, marginTop: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1F2937' },
+  modalBody: { padding: 20 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  detailHighlight: { backgroundColor: '#FEF3C7', paddingHorizontal: 12, borderRadius: 8, marginVertical: 8 },
+  detailLabel: { fontSize: 14, color: '#6B7280', fontWeight: '500' },
+  detailValue: { fontSize: 14, color: '#1F2937', fontWeight: '600' },
+  detailValueHighlight: { color: '#92400E' },
+  detailSection: { marginTop: 16 },
+  detailSectionTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 8 },
+  requisito: { fontSize: 14, color: '#6B7280', marginBottom: 4 },
+  modalFooter: { padding: 20, borderTopWidth: 1, borderTopColor: '#E5E7EB', flexDirection: 'row', gap: 12 },
+  modalButtonCancel: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center' },
+  modalButtonTextCancel: { fontSize: 16, fontWeight: '600', color: '#374151' },
+  modalButtonAction: { flex: 1, flexDirection: 'row', padding: 16, borderRadius: 12, backgroundColor: '#4F46E5', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  modalButtonTextAction: { fontSize: 16, fontWeight: '600', color: 'white' },
+  
+  // 🆕 Estilos del Diálogo Moderno
+  dialogOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  dialogContainer: { backgroundColor: 'white', borderRadius: 20, width: '100%', maxWidth: 400, overflow: 'hidden', elevation: 10 },
+  dialogHeader: { padding: 24, alignItems: 'center', gap: 12 },
+  dialogTitle: { fontSize: 20, fontWeight: 'bold', color: '#1F2937', textAlign: 'center' },
+  dialogBody: { padding: 20, paddingTop: 0 },
+  dialogMessage: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22 },
+  dialogFooter: { flexDirection: 'row', padding: 16, gap: 12, backgroundColor: '#F9FAFB' },
+  dialogButtonPrimary: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#4F46E5', alignItems: 'center' },
+  dialogButtonSecondary: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#E5E7EB', alignItems: 'center' },
+  dialogButtonDanger: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#EF4444', alignItems: 'center' },
+  dialogButtonTextPrimary: { fontSize: 16, fontWeight: '600', color: 'white' },
+  dialogButtonTextSecondary: { fontSize: 16, fontWeight: '600', color: '#374151' },
 });

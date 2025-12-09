@@ -1,8 +1,3 @@
-/**
- * Pantalla de Login
- * Permite al usuario iniciar sesión en la aplicación
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -42,7 +37,6 @@ export default function LoginScreen({ navigation }) {
 
     try {
       await login(email, password);
-      // La navegación se maneja automáticamente por el navegador principal
     } catch (error) {
       console.error('Error en login:', error);
       Alert.alert(
@@ -68,48 +62,56 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.logoContainer}>
             <Ionicons name="school" size={80} color="#4F46E5" />
           </View>
-          <Text style={styles.title}>Sistema Académico</Text>
+          <Text style={styles.title}>UniPlanner</Text>
           <Text style={styles.subtitle}>Universidad de Pamplona</Text>
         </View>
 
         {/* Formulario */}
         <View style={styles.form}>
           {/* Email */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email institucional"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Correo Electrónico</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="usuario@unipamplona.edu.co"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
           </View>
 
           {/* Contraseña */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Contraseña"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              editable={!loading}
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
-            >
-              <Ionicons
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
-                color="#9CA3AF"
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Contraseña</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+                placeholderTextColor="#9CA3AF"
               />
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={20}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Botón de Login */}
@@ -187,12 +189,20 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 12,
-    marginBottom: 16,
     paddingHorizontal: 16,
     height: 56,
     shadowColor: '#000',

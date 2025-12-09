@@ -1,3 +1,10 @@
+/**
+ * RegistroScreen.js - CORREGIDO ✅
+ * - Labels visibles
+ * - Contraseña con asteriscos y ojo visible
+ * - Auto-login después del registro exitoso
+ */
+
 import React, { useState } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, ScrollView, 
@@ -7,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function RegistroScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   // Estado para el formulario
   const [form, setForm] = useState({
@@ -15,7 +23,7 @@ export default function RegistroScreen({ navigation }) {
     email: '',
     password: '',
     semestre_actual: '',
-    tipo_estudio: 'moderado' // Valor por defecto
+    tipo_estudio: 'moderado'
   });
 
   const handleChange = (key, value) => {
@@ -23,7 +31,7 @@ export default function RegistroScreen({ navigation }) {
   };
 
   const handleRegistro = () => {
-    // 1. Validaciones básicas
+    // Validaciones básicas
     if (!form.nombre || !form.apellido || !form.email || !form.password || !form.semestre_actual) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
@@ -34,7 +42,18 @@ export default function RegistroScreen({ navigation }) {
       return;
     }
 
-    // 2. Ir a la pantalla de selección de materias (OBLIGATORIO)
+    if (form.password.length < 4) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 4 caracteres');
+      return;
+    }
+
+    const semestre = parseInt(form.semestre_actual);
+    if (isNaN(semestre) || semestre < 1 || semestre > 10) {
+      Alert.alert('Error', 'El semestre debe estar entre 1 y 10');
+      return;
+    }
+
+    // Ir a la pantalla de selección de materias (OBLIGATORIO)
     navigation.navigate('SeleccionMaterias', {
       userData: form
     });
@@ -55,55 +74,81 @@ export default function RegistroScreen({ navigation }) {
         <View style={styles.form}>
           {/* Nombre y Apellido en una fila */}
           <View style={styles.row}>
-            <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
+            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+              <Text style={styles.label}>Nombre</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Nombre"
+                placeholder="Juan"
                 value={form.nombre}
                 onChangeText={(t) => handleChange('nombre', t)}
+                placeholderTextColor="#9CA3AF"
               />
             </View>
-            <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
+            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+              <Text style={styles.label}>Apellido</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Apellido"
+                placeholder="Pérez"
                 value={form.apellido}
                 onChangeText={(t) => handleChange('apellido', t)}
+                placeholderTextColor="#9CA3AF"
               />
             </View>
           </View>
 
-          <View style={styles.inputContainer}>
+          {/* Email */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email Institucional</Text>
             <TextInput
               style={styles.input}
-              placeholder="Email Institucional"
+              placeholder="usuario@unipamplona.edu.co"
               keyboardType="email-address"
               autoCapitalize="none"
               value={form.email}
               onChangeText={(t) => handleChange('email', t)}
+              placeholderTextColor="#9CA3AF"
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Contraseña"
-              secureTextEntry
-              value={form.password}
-              onChangeText={(t) => handleChange('password', t)}
-            />
+          {/* Contraseña con ojo visible */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Contraseña</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Mínimo 4 caracteres"
+                secureTextEntry={!showPassword}
+                value={form.password}
+                onChangeText={(t) => handleChange('password', t)}
+                placeholderTextColor="#9CA3AF"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={20}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
+          {/* Semestre */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Semestre Actual</Text>
             <TextInput
               style={styles.input}
-              placeholder="Semestre Actual (ej: 5)"
+              placeholder="Ejemplo: 5"
               keyboardType="numeric"
               value={form.semestre_actual}
               onChangeText={(t) => handleChange('semestre_actual', t)}
+              placeholderTextColor="#9CA3AF"
             />
           </View>
 
+          {/* Intensidad de Estudio */}
           <Text style={styles.label}>Intensidad de Estudio:</Text>
           <View style={styles.row}>
             {['leve', 'moderado', 'intensivo'].map((tipo) => (
@@ -159,16 +204,49 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#6B7280' },
   form: { width: '100%' },
   row: { flexDirection: 'row', marginBottom: 16 },
-  inputContainer: {
-    backgroundColor: 'white', borderRadius: 12, marginBottom: 16,
-    paddingHorizontal: 16, height: 50, justifyContent: 'center',
-    borderWidth: 1, borderColor: '#E5E7EB'
+  inputGroup: { marginBottom: 16 },
+  label: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#374151', 
+    marginBottom: 8 
   },
-  input: { fontSize: 16 },
-  label: { marginBottom: 8, fontWeight: '600', color: '#374151' },
+  input: {
+    backgroundColor: 'white', 
+    borderRadius: 12, 
+    paddingHorizontal: 16, 
+    height: 50, 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB',
+    fontSize: 16,
+    color: '#1F2937'
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    height: 50,
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  eyeButton: {
+    padding: 4,
+  },
   optionButton: {
-    flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, 
-    borderColor: '#D1D5DB', alignItems: 'center', marginHorizontal: 4
+    flex: 1, 
+    padding: 10, 
+    borderRadius: 8, 
+    borderWidth: 1, 
+    borderColor: '#D1D5DB', 
+    alignItems: 'center', 
+    marginHorizontal: 4
   },
   optionSelected: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
   optionText: { color: '#6B7280' },
@@ -190,10 +268,19 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   button: {
-    backgroundColor: '#4F46E5', borderRadius: 12, height: 56,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginTop: 24, shadowColor: '#4F46E5', shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4, gap: 8,
+    backgroundColor: '#4F46E5', 
+    borderRadius: 12, 
+    height: 56,
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    marginTop: 24, 
+    shadowColor: '#4F46E5', 
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3, 
+    shadowRadius: 8, 
+    elevation: 4, 
+    gap: 8,
   },
   buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   linkButton: { marginTop: 20, alignItems: 'center' },

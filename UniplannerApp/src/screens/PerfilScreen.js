@@ -1,13 +1,13 @@
+/**
+ * PerfilScreen.js - CORREGIDO ✅
+ * - Botón de logout con área clickeable completa (TouchableOpacity)
+ * - Mejor UX de interacción
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,12 +42,16 @@ export default function PerfilScreen() {
     setRefreshing(false);
   };
 
+  // 🆕 FUNCIÓN MEJORADA DE LOGOUT
   const handleLogout = () => {
     Alert.alert(
       'Cerrar Sesión',
       '¿Estás seguro de que deseas cerrar sesión?',
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Cancelar', 
+          style: 'cancel' 
+        },
         {
           text: 'Cerrar Sesión',
           style: 'destructive',
@@ -89,7 +93,7 @@ export default function PerfilScreen() {
 
   const getProgresoCarrera = () => {
     if (!perfil?.estadisticas) return 0;
-    const total = 170; // Total de créditos de Ingeniería de Sistemas
+    const total = 170;
     const aprobados = perfil.estadisticas.creditos_aprobados || 0;
     return Math.round((aprobados / total) * 100);
   };
@@ -188,9 +192,7 @@ export default function PerfilScreen() {
 
           <View style={styles.progresoBarContainer}>
             <View style={styles.progresoBar}>
-              <View
-                style={[styles.progresoFill, { width: `${progresoCarrera}%` }]}
-              />
+              <View style={[styles.progresoFill, { width: `${progresoCarrera}%` }]} />
             </View>
             <Text style={styles.progresoPorcentaje}>{progresoCarrera}%</Text>
           </View>
@@ -218,7 +220,7 @@ export default function PerfilScreen() {
               <Text style={styles.progresoStatNumero}>
                 {perfil?.estadisticas?.creditos_actuales || 0}
               </Text>
-              <Text style={styles.progresoStatLabel}>Créditos actuales</Text>
+              <Text style={styles.progresoStatLabel}>Créd. actuales</Text>
             </View>
           </View>
         </View>
@@ -264,7 +266,6 @@ export default function PerfilScreen() {
           </View>
         </View>
 
-        {/* Porcentaje de Completado */}
         {perfil?.estadisticas?.total_tareas > 0 && (
           <View style={styles.completadoCard}>
             <View style={styles.completadoHeader}>
@@ -337,9 +338,13 @@ export default function PerfilScreen() {
         </View>
       )}
 
-      {/* Botón de Cerrar Sesión */}
+      {/* 🆕 BOTÓN DE CERRAR SESIÓN MEJORADO */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
           <Ionicons name="log-out-outline" size={20} color="white" />
           <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
         </TouchableOpacity>
@@ -351,274 +356,57 @@ export default function PerfilScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#4F46E5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tipoEstudioBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  nombre: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  tipoBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  tipoBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  section: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 16,
-  },
-  infoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  infoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  progresoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  progresoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  progresoTitulo: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  progresoNumero: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-  },
-  progresoBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  progresoBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progresoFill: {
-    height: '100%',
-    backgroundColor: '#4F46E5',
-  },
-  progresoPorcentaje: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-    width: 45,
-  },
-  progresoStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  progresoStat: {
-    alignItems: 'center',
-  },
-  progresoStatNumero: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  progresoStatLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  progresoStatDivider: {
-    width: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  completadoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  completadoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  completadoTitulo: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  completadoBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  completadoBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  completadoFill: {
-    height: '100%',
-    backgroundColor: '#F59E0B',
-  },
-  completadoPorcentaje: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#F59E0B',
-    width: 45,
-  },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },
+  header: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 20, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  avatarContainer: { position: 'relative', marginBottom: 16 },
+  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' },
+  tipoEstudioBadge: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'white' },
+  nombre: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginBottom: 4 },
+  email: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
+  tipoBadge: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
+  tipoBadgeText: { fontSize: 13, fontWeight: '600', textTransform: 'capitalize' },
+  section: { padding: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937', marginBottom: 16 },
+  infoCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+  infoIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEF2FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  infoContent: { flex: 1 },
+  infoLabel: { fontSize: 13, color: '#6B7280', marginBottom: 2 },
+  infoValue: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
+  divider: { height: 1, backgroundColor: '#F3F4F6' },
+  progresoCard: { backgroundColor: 'white', borderRadius: 12, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  progresoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  progresoTitulo: { fontSize: 15, fontWeight: '600', color: '#374151' },
+  progresoNumero: { fontSize: 15, fontWeight: 'bold', color: '#4F46E5' },
+  progresoBarContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  progresoBar: { flex: 1, height: 8, backgroundColor: '#E5E7EB', borderRadius: 4, overflow: 'hidden' },
+  progresoFill: { height: '100%', backgroundColor: '#4F46E5' },
+  progresoPorcentaje: { fontSize: 14, fontWeight: 'bold', color: '#4F46E5', width: 45 },
+  progresoStats: { flexDirection: 'row', justifyContent: 'space-around' },
+  progresoStat: { alignItems: 'center' },
+  progresoStatNumero: { fontSize: 24, fontWeight: 'bold', color: '#1F2937' },
+  progresoStatLabel: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  progresoStatDivider: { width: 1, backgroundColor: '#E5E7EB' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  statCard: { flex: 1, minWidth: '45%', backgroundColor: 'white', borderRadius: 12, padding: 16, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  statIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  statNumber: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginBottom: 4 },
+  statLabel: { fontSize: 12, color: '#6B7280', textAlign: 'center' },
+  completadoCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  completadoHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  completadoTitulo: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
+  completadoBarContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  completadoBar: { flex: 1, height: 8, backgroundColor: '#E5E7EB', borderRadius: 4, overflow: 'hidden' },
+  completadoFill: { height: '100%', backgroundColor: '#F59E0B' },
+  completadoPorcentaje: { fontSize: 16, fontWeight: 'bold', color: '#F59E0B', width: 45 },
+  
+  // 🆕 BOTÓN DE LOGOUT CORREGIDO
   logoutButton: {
     flexDirection: 'row',
     backgroundColor: '#EF4444',
     paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
