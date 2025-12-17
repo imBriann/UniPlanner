@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import AppBackground from '../components/AppBackground';
+import { colors, fonts, radii, shadows } from '../theme/tokens';
 
 export default function SemaforoScreen() {
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function SemaforoScreen() {
         // Materia aprobada
         estados[materia.codigo] = {
           estado: 'aprobada',
-          color: '#10B981',
+          color: colors.success,
           icon: 'checkmark-circle',
           puede_cursar: false,
           razon: 'Ya aprobada'
@@ -80,7 +82,7 @@ export default function SemaforoScreen() {
         // Materia cursando
         estados[materia.codigo] = {
           estado: 'cursando',
-          color: '#3B82F6',
+          color: colors.info,
           icon: 'sync-circle',
           puede_cursar: false,
           razon: 'Cursando actualmente'
@@ -94,7 +96,7 @@ export default function SemaforoScreen() {
           // Puede cursar
           estados[materia.codigo] = {
             estado: 'disponible',
-            color: '#F59E0B',
+            color: colors.warning,
             icon: 'alert-circle',
             puede_cursar: true,
             razon: 'Disponible para cursar'
@@ -103,7 +105,7 @@ export default function SemaforoScreen() {
           // Bloqueada por prerequisitos
           estados[materia.codigo] = {
             estado: 'bloqueada',
-            color: '#EF4444',
+            color: colors.danger,
             icon: 'lock-closed',
             puede_cursar: false,
             razon: 'Faltan prerequisitos',
@@ -152,7 +154,7 @@ export default function SemaforoScreen() {
   };
 
   const renderMateria = (materia) => {
-    const estado = estadoMaterias[materia.codigo] || { color: '#9CA3AF', icon: 'help-circle' };
+    const estado = estadoMaterias[materia.codigo] || { color: colors.inkSubtle, icon: 'help-circle' };
 
     return (
       <TouchableOpacity
@@ -173,13 +175,13 @@ export default function SemaforoScreen() {
             
             <View style={styles.materiaFooter}>
               <View style={styles.creditosBadge}>
-                <Ionicons name="school-outline" size={12} color="#6B7280" />
+                <Ionicons name="school-outline" size={12} color={colors.inkMuted} />
                 <Text style={styles.creditosText}>{materia.creditos} créd.</Text>
               </View>
 
               {materia.requisitos && materia.requisitos.length > 0 && (
                 <View style={styles.prerequisitosBadge}>
-                  <Ionicons name="git-branch-outline" size={12} color="#6B7280" />
+                  <Ionicons name="git-branch-outline" size={12} color={colors.inkMuted} />
                   <Text style={styles.prerequisitosText}>
                     {materia.requisitos.length} req.
                   </Text>
@@ -206,21 +208,21 @@ export default function SemaforoScreen() {
       <View key={semestre} style={styles.semestreContainer}>
         <View style={styles.semestreHeader}>
           <View style={styles.semestreTitleContainer}>
-            <Ionicons name="school" size={24} color="#4F46E5" />
+            <Ionicons name="school" size={24} color={colors.primary} />
             <Text style={styles.semestreTitulo}>Semestre {semestre}</Text>
           </View>
 
           <View style={styles.semestreStats}>
             <View style={styles.statChip}>
-              <View style={[styles.statDot, { backgroundColor: '#10B981' }]} />
+              <View style={[styles.statDot, { backgroundColor: colors.success }]} />
               <Text style={styles.statText}>{aprobadas}</Text>
             </View>
             <View style={styles.statChip}>
-              <View style={[styles.statDot, { backgroundColor: '#3B82F6' }]} />
+              <View style={[styles.statDot, { backgroundColor: colors.info }]} />
               <Text style={styles.statText}>{cursando}</Text>
             </View>
             <View style={styles.statChip}>
-              <View style={[styles.statDot, { backgroundColor: '#F59E0B' }]} />
+              <View style={[styles.statDot, { backgroundColor: colors.warning }]} />
               <Text style={styles.statText}>{disponibles}</Text>
             </View>
           </View>
@@ -242,7 +244,8 @@ export default function SemaforoScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <AppBackground />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Cargando pensum...</Text>
       </View>
     );
@@ -252,28 +255,29 @@ export default function SemaforoScreen() {
 
   return (
     <View style={styles.container}>
+      <AppBackground />
       {/* Leyenda del Semáforo */}
       <View style={styles.leyendaContainer}>
         <Text style={styles.leyendaTitulo}>🚦 Semáforo Estudiante</Text>
         
         <View style={styles.leyendaGrid}>
           <View style={styles.leyendaItem}>
-            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={20} color={colors.success} />
             <Text style={styles.leyendaTexto}>Aprobada</Text>
           </View>
           
           <View style={styles.leyendaItem}>
-            <Ionicons name="sync-circle" size={20} color="#3B82F6" />
+            <Ionicons name="sync-circle" size={20} color={colors.info} />
             <Text style={styles.leyendaTexto}>Cursando</Text>
           </View>
           
           <View style={styles.leyendaItem}>
-            <Ionicons name="alert-circle" size={20} color="#F59E0B" />
+            <Ionicons name="alert-circle" size={20} color={colors.warning} />
             <Text style={styles.leyendaTexto}>Disponible</Text>
           </View>
           
           <View style={styles.leyendaItem}>
-            <Ionicons name="lock-closed" size={20} color="#EF4444" />
+            <Ionicons name="lock-closed" size={20} color={colors.danger} />
             <Text style={styles.leyendaTexto}>Bloqueada</Text>
           </View>
         </View>
@@ -308,29 +312,31 @@ export default function SemaforoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
+    position: 'relative',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 12,
-    color: '#6B7280',
+    color: colors.inkMuted,
     fontSize: 14,
+    fontFamily: fonts.medium,
   },
   leyendaContainer: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   leyendaTitulo: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontFamily: fonts.semibold,
+    color: colors.ink,
     marginBottom: 12,
   },
   leyendaGrid: {
@@ -343,20 +349,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.chip,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: radii.sm,
   },
   leyendaTexto: {
     fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
   },
   progresoGlobal: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   progresoHeader: {
     flexDirection: 'row',
@@ -366,28 +374,29 @@ const styles = StyleSheet.create({
   },
   progresoLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontFamily: fonts.semibold,
+    color: colors.inkMuted,
   },
   progresoPorcentaje: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4F46E5',
+    fontFamily: fonts.bold,
+    color: colors.primary,
   },
   progresoBar: {
     height: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 6,
   },
   progresoFill: {
     height: '100%',
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
   },
   progresoInfo: {
     fontSize: 12,
-    color: '#6B7280',
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
     textAlign: 'center',
   },
   scrollView: {
@@ -402,7 +411,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.glowSky,
   },
   semestreTitleContainer: {
     flexDirection: 'row',
@@ -411,8 +420,8 @@ const styles = StyleSheet.create({
   },
   semestreTitulo: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontFamily: fonts.semibold,
+    color: colors.ink,
   },
   semestreStats: {
     flexDirection: 'row',
@@ -421,11 +430,13 @@ const styles = StyleSheet.create({
   statChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statDot: {
     width: 8,
@@ -434,22 +445,20 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
+    fontFamily: fonts.semibold,
+    color: colors.inkMuted,
   },
   materiasGrid: {
     padding: 12,
     gap: 8,
   },
   materiaCard: {
-    backgroundColor: 'white',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.sm,
     padding: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   materiaHeader: {
     flexDirection: 'row',
@@ -467,13 +476,14 @@ const styles = StyleSheet.create({
   },
   materiaCodigo: {
     fontSize: 11,
-    color: '#9CA3AF',
+    fontFamily: fonts.medium,
+    color: colors.inkSubtle,
     marginBottom: 2,
   },
   materiaNombre: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontFamily: fonts.semibold,
+    color: colors.ink,
     marginBottom: 6,
   },
   materiaFooter: {
@@ -483,7 +493,7 @@ const styles = StyleSheet.create({
   creditosBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.chip,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
@@ -491,13 +501,13 @@ const styles = StyleSheet.create({
   },
   creditosText: {
     fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
   },
   prerequisitosBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
@@ -505,7 +515,8 @@ const styles = StyleSheet.create({
   },
   prerequisitosText: {
     fontSize: 11,
-    color: '#92400E',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
+    color: colors.warning,
   },
 });
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,261 +9,385 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+import AppBackground from '../components/AppBackground';
+import ModernDialog from './ModernDialog';
+import { colors, fonts, radii, shadows } from '../theme/tokens';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [biometricReady, setBiometricReady] = useState(false);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState({
+    title: '',
+    message: '',
+    type: 'error',
+    closeText: 'Entendido',
+  });
+
+  const {
+    login,
+    loginWithBiometrics,
+    biometricEnabled,
+    hasStoredSession,
+  } = useAuth();
+
+  useEffect(() => {
+    const checkBiometric = async () => {
+      if (!biometricEnabled || !hasStoredSession) {
+        setBiometricReady(false);
+        return;
+      }
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricReady(hasHardware && enrolled);
+    };
+
+    checkBiometric();
+  }, [biometricEnabled, hasStoredSession]);
+
+  const showDialog = ({ title, message, type = 'error', closeText = 'Entendido' }) => {
+    setDialogConfig({ title, message, type, closeText });
+    setDialogVisible(true);
+  };
 
   const handleLogin = async () => {
-    // Validaciones
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      showDialog({
+        title: 'Datos incompletos',
+        message: 'Ingresa tu correo y contrasena para continuar.',
+        type: 'warning',
+      });
       return;
     }
 
     if (!email.includes('@')) {
-      Alert.alert('Error', 'Por favor ingresa un email válido');
+      showDialog({
+        title: 'Correo invalido',
+        message: 'Ingresa un correo institucional valido.',
+        type: 'warning',
+      });
       return;
     }
 
     setLoading(true);
 
     try {
-      await login(email, password);
+      const result = await login(email, password);
+      if (!result?.success) {
+        showDialog({
+          title: 'No pudimos iniciar sesion',
+          message: result?.error || 'Verifica tus credenciales e intenta de nuevo.',
+          type: 'error',
+        });
+      }
     } catch (error) {
       console.error('Error en login:', error);
-      Alert.alert(
-        'Error de inicio de sesión',
-        error.userMessage || 'Credenciales incorrectas. Verifica tu email y contraseña.'
-      );
+      showDialog({
+        title: 'Error de inicio de sesion',
+        message: 'Ocurrio un problema inesperado. Intenta de nuevo.',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleBiometricLogin = async () => {
+    const auth = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Ingresar con huella',
+      fallbackLabel: 'Usar contrasena',
+    });
+
+    if (!auth.success) return;
+
+    const result = await loginWithBiometrics();
+    if (!result?.success) {
+      showDialog({
+        title: 'Sesion no disponible',
+        message: result?.error || 'No hay una sesion guardada para usar huella.',
+        type: 'warning',
+      });
+    }
+  };
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        {/* Logo/Header */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="school" size={80} color="#4F46E5" />
-          </View>
-          <Text style={styles.title}>UniPlanner</Text>
-          <Text style={styles.subtitle}>Universidad de Pamplona</Text>
-        </View>
-
-        {/* Formulario */}
-        <View style={styles.form}>
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Correo Electrónico</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="usuario@unipamplona.edu.co"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-                placeholderTextColor="#9CA3AF"
-              />
+        <AppBackground />
+        <ModernDialog
+          visible={dialogVisible}
+          onClose={() => setDialogVisible(false)}
+          title={dialogConfig.title}
+          message={dialogConfig.message}
+          type={dialogConfig.type}
+          closeText={dialogConfig.closeText}
+        />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <Ionicons name="school" size={72} color={colors.primary} />
             </View>
+            <Text style={styles.title}>Iniciar sesion</Text>
+            <Text style={styles.subtitle}>Universidad de Pamplona</Text>
           </View>
 
-          {/* Contraseña */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                editable={!loading}
-                placeholderTextColor="#9CA3AF"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color="#9CA3AF"
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Acceso estudiantil</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Usuario o correo</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color={colors.inkSubtle} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="usuario@unipamplona.edu.co"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  placeholderTextColor={colors.inkSubtle}
                 />
-              </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          {/* Botón de Login */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Contrasena</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color={colors.inkSubtle} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="********"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                  placeholderTextColor={colors.inkSubtle}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={colors.inkSubtle}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.surface} />
+              ) : (
+                <>
+                  <Text style={styles.buttonText}>Iniciar sesion</Text>
+                  <Ionicons name="arrow-forward" size={20} color={colors.surface} />
+                </>
+              )}
+            </TouchableOpacity>
+
+            {biometricReady && (
               <>
-                <Text style={styles.buttonText}>Iniciar Sesión</Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>o</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.bioButton}
+                  onPress={handleBiometricLogin}
+                >
+                  <Ionicons name="finger-print" size={26} color={colors.primary} />
+                  <Text style={styles.bioText}>Ingresar con huella</Text>
+                </TouchableOpacity>
               </>
             )}
-          </TouchableOpacity>
 
-          {/* Enlace a Registro */}
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => navigation.navigate('RegistroScreen')}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>
-              ¿No tienes cuenta? <Text style={styles.linkTextBold}>Regístrate aquí</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Ingeniería de Sistemas
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <TouchableOpacity
+              style={styles.linkContainer}
+              onPress={() => navigation.navigate('RegistroScreen')}
+              disabled={loading}
+            >
+              <Text style={styles.linkText}>
+                No tienes cuenta? <Text style={styles.linkTextBold}>Registrate</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
+    position: 'relative',
   },
   scrollContent: {
     flexGrow: 1,
+    padding: 24,
     justifyContent: 'center',
-    padding: 20,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 24,
   },
   logoContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
+    ...shadows.soft,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
+    fontSize: 26,
+    fontFamily: fonts.bold,
+    color: colors.ink,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
   },
-  form: {
-    width: '100%',
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontFamily: fonts.semibold,
+    color: colors.ink,
+    marginBottom: 16,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: 13,
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
     marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 56,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  inputIcon: {
-    marginRight: 12,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radii.md,
+    paddingHorizontal: 14,
+    height: 52,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 10,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
+    fontSize: 15,
+    fontFamily: fonts.regular,
+    color: colors.ink,
   },
   eyeIcon: {
-    padding: 8,
+    padding: 6,
   },
   button: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    height: 56,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    ...shadows.soft,
   },
   buttonDisabled: {
-    backgroundColor: '#9CA3AF',
-    shadowOpacity: 0,
+    backgroundColor: colors.borderStrong,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.surface,
+    fontSize: 15,
+    fontFamily: fonts.semibold,
     marginRight: 8,
   },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+    gap: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    color: colors.inkSubtle,
+  },
+  bioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 8,
+    backgroundColor: colors.surfaceAlt,
+  },
+  bioText: {
+    fontSize: 14,
+    fontFamily: fonts.semibold,
+    color: colors.primary,
+  },
   linkContainer: {
-    marginTop: 24,
+    marginTop: 20,
     alignItems: 'center',
   },
   linkText: {
-    color: '#6B7280',
-    fontSize: 14,
+    color: colors.inkMuted,
+    fontSize: 13,
+    fontFamily: fonts.regular,
   },
   linkTextBold: {
-    color: '#4F46E5',
-    fontWeight: '600',
-  },
-  footer: {
-    marginTop: 40,
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#9CA3AF',
-    fontSize: 12,
+    color: colors.primary,
+    fontFamily: fonts.semibold,
   },
 });

@@ -1,9 +1,13 @@
+/**
+ * API Client Mejorado con Interceptores y Manejo de Errores
+ */
+
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-//const API_URL = 'https://uniplanner-api.onrender.com/api/'; 
-const API_URL = 'http://192.168.0.8:5000/api/'; // URL para desarrollo local
-
+// URL de la API - CAMBIAR SEGÚN TU CONFIGURACIÓN
+//const API_URL = 'https://tu-api-render.onrender.com/api/'; 
+const API_URL = 'http://192.168.0.7:5000/api/'; // Desarrollo local
 
 // Crear instancia de Axios
 const api = axios.create({
@@ -11,7 +15,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 segundos de espera máxima
+  timeout: 15000, // 15 segundos
 });
 
 // Interceptor de peticiones: Agregar token automáticamente
@@ -39,24 +43,19 @@ api.interceptors.response.use(
   },
   async (error) => {
     if (error.response) {
-      // El servidor respondió con un código de estado fuera del rango 2xx
       const { status, data } = error.response;
       
       if (status === 401) {
-        // Token expirado o inválido
-        console.log('Token inválido, redirigiendo al login...');
+        // Token expirado o inválido - limpiar sesión
+        console.log('Token inválido, limpiando sesión...');
         await SecureStore.deleteItemAsync('user_token');
         await SecureStore.deleteItemAsync('user_data');
-        // El AuthContext detectará que user_token ya no existe y mostrará el Login
       }
       
-      // Agregar el error original al objeto error para que sea accesible
       error.userMessage = data?.error || 'Error en la solicitud';
     } else if (error.request) {
-      // La petición fue hecha pero no hubo respuesta
       error.userMessage = 'No se pudo conectar con el servidor. Verifica tu conexión.';
     } else {
-      // Algo más causó el error
       error.userMessage = 'Ocurrió un error inesperado';
     }
     
@@ -89,6 +88,20 @@ export const registerUser = async (userData) => {
       return { status: error.response.status, data: error.response.data };
     }
     return { status: 500, error: 'Error de conexión con el servidor' };
+  }
+};
+
+// Funcion para restablecer contrasena
+export const resetPassword = async (email) => {
+  try {
+    const response = await api.post('/auth/restablecer', { email });
+    return { status: response.status, data: response.data };
+  } catch (error) {
+    console.error("Error restablecer:", error);
+    if (error.response) {
+      return { status: error.response.status, data: error.response.data };
+    }
+    return { status: 500, error: 'Error de conexion con el servidor' };
   }
 };
 

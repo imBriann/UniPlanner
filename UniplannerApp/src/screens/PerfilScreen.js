@@ -12,8 +12,10 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import AppBackground from '../components/AppBackground';
+import { colors, fonts, radii, shadows } from '../theme/tokens';
 
-export default function PerfilScreen() {
+export default function PerfilScreen({ navigation }) {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,22 +72,22 @@ export default function PerfilScreen() {
   const getTipoEstudioInfo = (tipo) => {
     const info = {
       intensivo: {
-        color: '#EF4444',
+        color: colors.danger,
         icon: 'flame',
         descripcion: '6+ horas diarias',
-        bgColor: '#FEE2E2',
+        bgColor: `${colors.danger}14`,
       },
       moderado: {
-        color: '#F59E0B',
+        color: colors.warning,
         icon: 'sunny',
         descripcion: '4 horas diarias',
-        bgColor: '#FEF3C7',
+        bgColor: colors.accentSoft,
       },
       leve: {
-        color: '#10B981',
+        color: colors.success,
         icon: 'leaf',
         descripcion: '2-3 horas diarias',
-        bgColor: '#D1FAE5',
+        bgColor: colors.glowTeal,
       },
     };
     return info[tipo] || info.moderado;
@@ -101,7 +103,8 @@ export default function PerfilScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <AppBackground />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -110,10 +113,12 @@ export default function PerfilScreen() {
   const progresoCarrera = getProgresoCarrera();
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
+    <View style={styles.container}>
+      <AppBackground />
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
       {/* Header con Avatar */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
@@ -142,7 +147,7 @@ export default function PerfilScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoIcon}>
-              <Ionicons name="school-outline" size={20} color="#4F46E5" />
+              <Ionicons name="school-outline" size={20} color={colors.primary} />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Carrera</Text>
@@ -154,7 +159,7 @@ export default function PerfilScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIcon}>
-              <Ionicons name="calendar-outline" size={20} color="#4F46E5" />
+              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Semestre Actual</Text>
@@ -166,7 +171,7 @@ export default function PerfilScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIcon}>
-              <Ionicons name="time-outline" size={20} color="#4F46E5" />
+              <Ionicons name="time-outline" size={20} color={colors.primary} />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Intensidad de Estudio</Text>
@@ -232,32 +237,32 @@ export default function PerfilScreen() {
 
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#EEF2FF' }]}>
-              <Ionicons name="list-outline" size={24} color="#4F46E5" />
+            <View style={[styles.statIcon, { backgroundColor: colors.glowSky }]}>
+              <Ionicons name="list-outline" size={24} color={colors.primary} />
             </View>
             <Text style={styles.statNumber}>{perfil?.estadisticas?.total_tareas || 0}</Text>
             <Text style={styles.statLabel}>Total de tareas</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#DBEAFE' }]}>
-              <Ionicons name="hourglass-outline" size={24} color="#3B82F6" />
+            <View style={[styles.statIcon, { backgroundColor: colors.glowSky }]}>
+              <Ionicons name="hourglass-outline" size={24} color={colors.info} />
             </View>
             <Text style={styles.statNumber}>{perfil?.estadisticas?.pendientes || 0}</Text>
             <Text style={styles.statLabel}>Pendientes</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#D1FAE5' }]}>
-              <Ionicons name="checkmark-done" size={24} color="#10B981" />
+            <View style={[styles.statIcon, { backgroundColor: colors.glowTeal }]}>
+              <Ionicons name="checkmark-done" size={24} color={colors.success} />
             </View>
             <Text style={styles.statNumber}>{perfil?.estadisticas?.completadas || 0}</Text>
             <Text style={styles.statLabel}>Completadas</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="time-outline" size={24} color="#F59E0B" />
+            <View style={[styles.statIcon, { backgroundColor: colors.accentSoft }]}>
+              <Ionicons name="time-outline" size={24} color={colors.warning} />
             </View>
             <Text style={styles.statNumber}>
               {perfil?.estadisticas?.horas_pendientes?.toFixed(1) || 0}h
@@ -269,7 +274,7 @@ export default function PerfilScreen() {
         {perfil?.estadisticas?.total_tareas > 0 && (
           <View style={styles.completadoCard}>
             <View style={styles.completadoHeader}>
-              <Ionicons name="trophy-outline" size={24} color="#F59E0B" />
+              <Ionicons name="trophy-outline" size={24} color={colors.warning} />
               <Text style={styles.completadoTitulo}>Porcentaje de Completado</Text>
             </View>
             <View style={styles.completadoBarContainer}>
@@ -297,7 +302,7 @@ export default function PerfilScreen() {
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
-                <Ionicons name="time-outline" size={20} color="#4F46E5" />
+                <Ionicons name="time-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Horas Diarias</Text>
@@ -311,7 +316,7 @@ export default function PerfilScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
-                <Ionicons name="calendar-outline" size={20} color="#4F46E5" />
+                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Días de Estudio</Text>
@@ -325,7 +330,7 @@ export default function PerfilScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
-                <Ionicons name="alarm-outline" size={20} color="#4F46E5" />
+                <Ionicons name="alarm-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Horario Preferido</Text>
@@ -338,7 +343,25 @@ export default function PerfilScreen() {
         </View>
       )}
 
-      {/* 🆕 BOTÓN DE CERRAR SESIÓN MEJORADO */}
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Preferencias</Text>
+
+        <TouchableOpacity
+          style={styles.configButton}
+          onPress={() => navigation.navigate('Configuracion')}
+        >
+          <View style={styles.configInfo}>
+            <Ionicons name="settings-outline" size={20} color={colors.primary} />
+            <View style={styles.configText}>
+              <Text style={styles.configTitle}>Configuracion</Text>
+              <Text style={styles.configSubtitle}>Notificaciones y seguridad</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.inkSubtle} />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.section}>
         <TouchableOpacity 
           style={styles.logoutButton} 
@@ -350,76 +373,88 @@ export default function PerfilScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },
-  header: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 20, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  container: { flex: 1, backgroundColor: colors.background, position: 'relative' },
+  scrollView: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, position: 'relative' },
+  header: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 20, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   avatarContainer: { position: 'relative', marginBottom: 16 },
-  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' },
-  tipoEstudioBadge: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'white' },
-  nombre: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginBottom: 4 },
-  email: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
-  tipoBadge: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-  tipoBadgeText: { fontSize: 13, fontWeight: '600', textTransform: 'capitalize' },
+  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', ...shadows.soft },
+  tipoEstudioBadge: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.surface },
+  nombre: { fontSize: 24, fontFamily: fonts.bold, color: colors.ink, marginBottom: 4 },
+  email: { fontSize: 14, fontFamily: fonts.regular, color: colors.inkMuted, marginBottom: 12 },
+  tipoBadge: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  tipoBadgeText: { fontSize: 13, fontFamily: fonts.semibold, textTransform: 'capitalize' },
   section: { padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937', marginBottom: 16 },
-  infoCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  sectionTitle: { fontSize: 18, fontFamily: fonts.semibold, color: colors.ink, marginBottom: 16 },
+  configButton: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...shadows.card,
+  },
+  configInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  configText: { flex: 1 },
+  configTitle: { fontSize: 15, fontFamily: fonts.semibold, color: colors.ink, marginBottom: 2 },
+  configSubtitle: { fontSize: 12, fontFamily: fonts.regular, color: colors.inkMuted },
+  infoCard: { backgroundColor: colors.surface, borderRadius: radii.md, padding: 16, borderWidth: 1, borderColor: colors.border, ...shadows.card },
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  infoIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEF2FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  infoIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.glowSky, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   infoContent: { flex: 1 },
-  infoLabel: { fontSize: 13, color: '#6B7280', marginBottom: 2 },
-  infoValue: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
-  divider: { height: 1, backgroundColor: '#F3F4F6' },
-  progresoCard: { backgroundColor: 'white', borderRadius: 12, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  infoLabel: { fontSize: 13, fontFamily: fonts.medium, color: colors.inkMuted, marginBottom: 2 },
+  infoValue: { fontSize: 15, fontFamily: fonts.semibold, color: colors.ink },
+  divider: { height: 1, backgroundColor: colors.border },
+  progresoCard: { backgroundColor: colors.surface, borderRadius: radii.md, padding: 20, borderWidth: 1, borderColor: colors.border, ...shadows.card },
   progresoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  progresoTitulo: { fontSize: 15, fontWeight: '600', color: '#374151' },
-  progresoNumero: { fontSize: 15, fontWeight: 'bold', color: '#4F46E5' },
+  progresoTitulo: { fontSize: 15, fontFamily: fonts.semibold, color: colors.inkMuted },
+  progresoNumero: { fontSize: 15, fontFamily: fonts.bold, color: colors.primary },
   progresoBarContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  progresoBar: { flex: 1, height: 8, backgroundColor: '#E5E7EB', borderRadius: 4, overflow: 'hidden' },
-  progresoFill: { height: '100%', backgroundColor: '#4F46E5' },
-  progresoPorcentaje: { fontSize: 14, fontWeight: 'bold', color: '#4F46E5', width: 45 },
+  progresoBar: { flex: 1, height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  progresoFill: { height: '100%', backgroundColor: colors.primary },
+  progresoPorcentaje: { fontSize: 14, fontFamily: fonts.bold, color: colors.primary, width: 45 },
   progresoStats: { flexDirection: 'row', justifyContent: 'space-around' },
   progresoStat: { alignItems: 'center' },
-  progresoStatNumero: { fontSize: 24, fontWeight: 'bold', color: '#1F2937' },
-  progresoStatLabel: { fontSize: 12, color: '#6B7280', marginTop: 4 },
-  progresoStatDivider: { width: 1, backgroundColor: '#E5E7EB' },
+  progresoStatNumero: { fontSize: 24, fontFamily: fonts.bold, color: colors.ink },
+  progresoStatLabel: { fontSize: 12, fontFamily: fonts.medium, color: colors.inkMuted, marginTop: 4 },
+  progresoStatDivider: { width: 1, backgroundColor: colors.border },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-  statCard: { flex: 1, minWidth: '45%', backgroundColor: 'white', borderRadius: 12, padding: 16, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  statCard: { flex: 1, minWidth: '45%', backgroundColor: colors.surface, borderRadius: radii.md, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.border, ...shadows.card },
   statIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  statNumber: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginBottom: 4 },
-  statLabel: { fontSize: 12, color: '#6B7280', textAlign: 'center' },
-  completadoCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  statNumber: { fontSize: 24, fontFamily: fonts.bold, color: colors.ink, marginBottom: 4 },
+  statLabel: { fontSize: 12, fontFamily: fonts.medium, color: colors.inkMuted, textAlign: 'center' },
+  completadoCard: { backgroundColor: colors.surface, borderRadius: radii.md, padding: 16, borderWidth: 1, borderColor: colors.border, ...shadows.card },
   completadoHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  completadoTitulo: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
+  completadoTitulo: { fontSize: 15, fontFamily: fonts.semibold, color: colors.ink },
   completadoBarContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  completadoBar: { flex: 1, height: 8, backgroundColor: '#E5E7EB', borderRadius: 4, overflow: 'hidden' },
-  completadoFill: { height: '100%', backgroundColor: '#F59E0B' },
-  completadoPorcentaje: { fontSize: 16, fontWeight: 'bold', color: '#F59E0B', width: 45 },
-  
-  // 🆕 BOTÓN DE LOGOUT CORREGIDO
+  completadoBar: { flex: 1, height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  completadoFill: { height: '100%', backgroundColor: colors.warning },
+  completadoPorcentaje: { fontSize: 16, fontFamily: fonts.bold, color: colors.warning, width: 45 },
+
   logoutButton: {
     flexDirection: 'row',
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger,
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    elevation: 2,
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...shadows.soft,
   },
   logoutButtonText: {
-    color: 'white',
+    color: colors.surface,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });

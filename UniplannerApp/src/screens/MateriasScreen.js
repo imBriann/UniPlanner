@@ -13,16 +13,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import AppBackground from '../components/AppBackground';
+import { colors, fonts, radii, shadows } from '../theme/tokens';
 
 // 🆕 COMPONENTE DE DIÁLOGO MODERNO
 const ModernDialog = ({ visible, onClose, title, message, type = 'info', onConfirm }) => {
   if (!visible) return null;
 
   const config = {
-    info: { icon: 'information-circle', color: '#3B82F6', bg: '#EFF6FF' },
-    success: { icon: 'checkmark-circle', color: '#10B981', bg: '#D1FAE5' },
-    warning: { icon: 'alert-circle', color: '#F59E0B', bg: '#FEF3C7' },
-    error: { icon: 'close-circle', color: '#EF4444', bg: '#FEE2E2' },
+    info: { icon: 'information-circle', color: colors.info, bg: colors.glowSky },
+    success: { icon: 'checkmark-circle', color: colors.success, bg: colors.glowTeal },
+    warning: { icon: 'alert-circle', color: colors.warning, bg: colors.accentSoft },
+    error: { icon: 'close-circle', color: colors.danger, bg: `${colors.danger}14` },
   };
 
   const { icon, color, bg } = config[type];
@@ -181,7 +183,7 @@ export default function MateriasScreen() {
           <Text style={styles.semestreText}>Sem {materia.semestre}</Text>
         </View>
         <View style={styles.creditosBadge}>
-          <Ionicons name="school-outline" size={14} color="#4F46E5" />
+          <Ionicons name="school-outline" size={14} color={colors.primary} />
           <Text style={styles.creditosText}>{materia.creditos} créd.</Text>
         </View>
       </View>
@@ -197,14 +199,14 @@ export default function MateriasScreen() {
             cancelarMateria(materia.codigo, materia.nombre);
           }}
         >
-          <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
+          <Ionicons name="close-circle-outline" size={18} color={colors.danger} />
           <Text style={styles.cancelarText}>Cancelar</Text>
         </TouchableOpacity>
       )}
 
       {tipo === 'aprobada' && (
         <View style={styles.aprobadaBadge}>
-          <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+          <Ionicons name="checkmark-circle" size={18} color={colors.success} />
           <Text style={styles.aprobadaText}>Aprobada</Text>
         </View>
       )}
@@ -215,7 +217,7 @@ export default function MateriasScreen() {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color={colors.primary} />
         </View>
       );
     }
@@ -241,7 +243,7 @@ export default function MateriasScreen() {
 
           {materiasActuales.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="book-outline" size={64} color="#D1D5DB" />
+              <Ionicons name="book-outline" size={64} color={colors.borderStrong} />
               <Text style={styles.emptyText}>No tienes materias inscritas</Text>
               <Text style={styles.emptySubtext}>Busca materias para inscribirte</Text>
             </View>
@@ -275,7 +277,7 @@ export default function MateriasScreen() {
 
           {materiasAprobadas.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="trophy-outline" size={64} color="#D1D5DB" />
+              <Ionicons name="trophy-outline" size={64} color={colors.borderStrong} />
               <Text style={styles.emptyText}>Aún no has aprobado materias</Text>
               <Text style={styles.emptySubtext}>¡Sigue adelante!</Text>
             </View>
@@ -292,18 +294,18 @@ export default function MateriasScreen() {
       return (
         <View style={styles.buscarContainer}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color="#9CA3AF" />
+            <Ionicons name="search" size={20} color={colors.inkSubtle} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar por nombre o código..."
               value={busqueda}
               onChangeText={setBusqueda}
               onSubmitEditing={buscarMaterias}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.inkSubtle}
             />
             {busqueda.length > 0 && (
               <TouchableOpacity onPress={() => setBusqueda('')}>
-                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={20} color={colors.inkSubtle} />
               </TouchableOpacity>
             )}
           </View>
@@ -315,7 +317,7 @@ export default function MateriasScreen() {
           <ScrollView style={styles.resultadosScroll}>
             {resultadosBusqueda.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="search-outline" size={64} color="#D1D5DB" />
+                <Ionicons name="search-outline" size={64} color={colors.borderStrong} />
                 <Text style={styles.emptyText}>Busca materias del pensum</Text>
                 <Text style={styles.emptySubtext}>Escribe el nombre o código de la materia</Text>
               </View>
@@ -332,7 +334,7 @@ export default function MateriasScreen() {
                         <Text style={styles.semestreText}>Sem {materia.semestre}</Text>
                       </View>
                       <View style={styles.creditosBadge}>
-                        <Ionicons name="school-outline" size={14} color="#4F46E5" />
+                        <Ionicons name="school-outline" size={14} color={colors.primary} />
                         <Text style={styles.creditosText}>{materia.creditos} créd.</Text>
                       </View>
                     </View>
@@ -347,7 +349,7 @@ export default function MateriasScreen() {
                         inscribirMateria(materia.codigo);
                       }}
                     >
-                      <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
+                      <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
                       <Text style={styles.inscribirText}>Inscribir</Text>
                     </TouchableOpacity>
                   </TouchableOpacity>
@@ -362,6 +364,7 @@ export default function MateriasScreen() {
 
   return (
     <View style={styles.container}>
+      <AppBackground />
       <View style={styles.tabsContainer}>
         <TouchableOpacity
           style={[styles.tab, tab === 'actuales' && styles.tabActivo]}
@@ -370,7 +373,7 @@ export default function MateriasScreen() {
           <Ionicons
             name={tab === 'actuales' ? 'book' : 'book-outline'}
             size={20}
-            color={tab === 'actuales' ? '#4F46E5' : '#9CA3AF'}
+            color={tab === 'actuales' ? colors.primary : colors.inkSubtle}
           />
           <Text style={[styles.tabText, tab === 'actuales' && styles.tabTextoActivo]}>
             Actuales
@@ -384,7 +387,7 @@ export default function MateriasScreen() {
           <Ionicons
             name={tab === 'aprobadas' ? 'checkmark-circle' : 'checkmark-circle-outline'}
             size={20}
-            color={tab === 'aprobadas' ? '#4F46E5' : '#9CA3AF'}
+            color={tab === 'aprobadas' ? colors.primary : colors.inkSubtle}
           />
           <Text style={[styles.tabText, tab === 'aprobadas' && styles.tabTextoActivo]}>
             Aprobadas
@@ -398,7 +401,7 @@ export default function MateriasScreen() {
           <Ionicons
             name={tab === 'buscar' ? 'search' : 'search-outline'}
             size={20}
-            color={tab === 'buscar' ? '#4F46E5' : '#9CA3AF'}
+            color={tab === 'buscar' ? colors.primary : colors.inkSubtle}
           />
           <Text style={[styles.tabText, tab === 'buscar' && styles.tabTextoActivo]}>
             Buscar
@@ -416,7 +419,7 @@ export default function MateriasScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Detalles de la Materia</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={28} color="#6B7280" />
+                  <Ionicons name="close" size={28} color={colors.inkMuted} />
                 </TouchableOpacity>
               </View>
 
@@ -509,73 +512,73 @@ export default function MateriasScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  tabsContainer: { flexDirection: 'row', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  container: { flex: 1, backgroundColor: colors.background, position: 'relative' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  tabsContainer: { flexDirection: 'row', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
-  tabActivo: { borderBottomWidth: 2, borderBottomColor: '#4F46E5' },
-  tabText: { fontSize: 14, fontWeight: '500', color: '#9CA3AF' },
-  tabTextoActivo: { color: '#4F46E5', fontWeight: '600' },
+  tabActivo: { borderBottomWidth: 2, borderBottomColor: colors.primary },
+  tabText: { fontSize: 14, fontFamily: fonts.medium, color: colors.inkSubtle },
+  tabTextoActivo: { color: colors.primary, fontFamily: fonts.semibold },
   scrollView: { flex: 1 },
   statsContainer: { flexDirection: 'row', padding: 16, gap: 12 },
-  statItem: { flex: 1, backgroundColor: 'white', padding: 16, borderRadius: 12, alignItems: 'center', elevation: 2 },
-  statNumber: { fontSize: 32, fontWeight: 'bold', color: '#4F46E5' },
-  statLabel: { fontSize: 12, color: '#6B7280', marginTop: 4, textAlign: 'center' },
+  statItem: { flex: 1, backgroundColor: colors.surface, padding: 16, borderRadius: radii.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border, ...shadows.card },
+  statNumber: { fontSize: 32, fontFamily: fonts.bold, color: colors.primary },
+  statLabel: { fontSize: 12, fontFamily: fonts.medium, color: colors.inkMuted, marginTop: 4, textAlign: 'center' },
   materiasGrid: { padding: 16, gap: 12 },
-  materiaCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  materiaCard: { backgroundColor: colors.surface, borderRadius: radii.md, padding: 16, borderWidth: 1, borderColor: colors.border, ...shadows.card },
   materiaHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  semestreBadge: { backgroundColor: '#EEF2FF', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
-  semestreBadgeAprobada: { backgroundColor: '#F0FDF4' },
-  semestreText: { fontSize: 12, fontWeight: '600', color: '#4F46E5' },
-  creditosBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F9FAFB', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
-  creditosText: { fontSize: 12, fontWeight: '600', color: '#4F46E5' },
-  materiaCode: { fontSize: 12, color: '#9CA3AF', marginBottom: 4 },
-  materiaNombre: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 12 },
+  semestreBadge: { backgroundColor: colors.glowSky, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
+  semestreBadgeAprobada: { backgroundColor: colors.glowTeal },
+  semestreText: { fontSize: 12, fontFamily: fonts.semibold, color: colors.primary },
+  creditosBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.chip, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
+  creditosText: { fontSize: 12, fontFamily: fonts.semibold, color: colors.primary },
+  materiaCode: { fontSize: 12, fontFamily: fonts.medium, color: colors.inkSubtle, marginBottom: 4 },
+  materiaNombre: { fontSize: 16, fontFamily: fonts.semibold, color: colors.ink, marginBottom: 12 },
   cancelarButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, marginTop: 8 },
-  cancelarText: { fontSize: 14, fontWeight: '500', color: '#EF4444' },
+  cancelarText: { fontSize: 14, fontFamily: fonts.medium, color: colors.danger },
   inscribirButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, marginTop: 8 },
-  inscribirText: { fontSize: 14, fontWeight: '500', color: '#4F46E5' },
+  inscribirText: { fontSize: 14, fontFamily: fonts.medium, color: colors.primary },
   aprobadaBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, marginTop: 8 },
-  aprobadaText: { fontSize: 14, fontWeight: '500', color: '#10B981' },
+  aprobadaText: { fontSize: 14, fontFamily: fonts.medium, color: colors.success },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#6B7280', marginTop: 16 },
-  emptySubtext: { fontSize: 14, color: '#9CA3AF', marginTop: 8 },
+  emptyText: { fontSize: 18, fontFamily: fonts.semibold, color: colors.inkMuted, marginTop: 16 },
+  emptySubtext: { fontSize: 14, fontFamily: fonts.regular, color: colors.inkSubtle, marginTop: 8 },
   buscarContainer: { flex: 1, padding: 16 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, gap: 12, elevation: 2 },
-  searchInput: { flex: 1, fontSize: 16 },
-  searchButton: { backgroundColor: '#4F46E5', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
-  searchButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.md, paddingHorizontal: 16, paddingVertical: 12, gap: 12, borderWidth: 1, borderColor: colors.border, ...shadows.card },
+  searchInput: { flex: 1, fontSize: 16, fontFamily: fonts.regular, color: colors.ink },
+  searchButton: { backgroundColor: colors.primary, borderRadius: radii.md, paddingVertical: 14, alignItems: 'center', marginTop: 12, ...shadows.soft },
+  searchButtonText: { color: colors.surface, fontSize: 16, fontFamily: fonts.semibold },
   resultadosScroll: { flex: 1, marginTop: 16 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1F2937' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: colors.surface, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
+  modalTitle: { fontSize: 20, fontFamily: fonts.semibold, color: colors.ink },
   modalBody: { padding: 20 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  detailHighlight: { backgroundColor: '#FEF3C7', paddingHorizontal: 12, borderRadius: 8, marginVertical: 8 },
-  detailLabel: { fontSize: 14, color: '#6B7280', fontWeight: '500' },
-  detailValue: { fontSize: 14, color: '#1F2937', fontWeight: '600' },
-  detailValueHighlight: { color: '#92400E' },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  detailHighlight: { backgroundColor: colors.accentSoft, paddingHorizontal: 12, borderRadius: radii.sm, marginVertical: 8 },
+  detailLabel: { fontSize: 14, fontFamily: fonts.medium, color: colors.inkMuted },
+  detailValue: { fontSize: 14, fontFamily: fonts.semibold, color: colors.ink },
+  detailValueHighlight: { color: colors.warning },
   detailSection: { marginTop: 16 },
-  detailSectionTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 8 },
-  requisito: { fontSize: 14, color: '#6B7280', marginBottom: 4 },
-  modalFooter: { padding: 20, borderTopWidth: 1, borderTopColor: '#E5E7EB', flexDirection: 'row', gap: 12 },
-  modalButtonCancel: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center' },
-  modalButtonTextCancel: { fontSize: 16, fontWeight: '600', color: '#374151' },
-  modalButtonAction: { flex: 1, flexDirection: 'row', padding: 16, borderRadius: 12, backgroundColor: '#4F46E5', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  modalButtonTextAction: { fontSize: 16, fontWeight: '600', color: 'white' },
-  
-  // 🆕 Estilos del Diálogo Moderno
-  dialogOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  dialogContainer: { backgroundColor: 'white', borderRadius: 20, width: '100%', maxWidth: 400, overflow: 'hidden', elevation: 10 },
+  detailSectionTitle: { fontSize: 16, fontFamily: fonts.semibold, color: colors.ink, marginBottom: 8 },
+  requisito: { fontSize: 14, fontFamily: fonts.regular, color: colors.inkMuted, marginBottom: 4 },
+  modalFooter: { padding: 20, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', gap: 12 },
+  modalButtonCancel: { flex: 1, padding: 16, borderRadius: radii.md, backgroundColor: colors.chip, alignItems: 'center' },
+  modalButtonTextCancel: { fontSize: 16, fontFamily: fonts.medium, color: colors.inkMuted },
+  modalButtonAction: { flex: 1, flexDirection: 'row', padding: 16, borderRadius: radii.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  modalButtonTextAction: { fontSize: 16, fontFamily: fonts.semibold, color: colors.surface },
+
+  dialogOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  dialogContainer: { backgroundColor: colors.surface, borderRadius: radii.lg, width: '100%', maxWidth: 400, overflow: 'hidden', ...shadows.float },
   dialogHeader: { padding: 24, alignItems: 'center', gap: 12 },
-  dialogTitle: { fontSize: 20, fontWeight: 'bold', color: '#1F2937', textAlign: 'center' },
+  dialogTitle: { fontSize: 20, fontFamily: fonts.semibold, color: colors.ink, textAlign: 'center' },
   dialogBody: { padding: 20, paddingTop: 0 },
-  dialogMessage: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22 },
-  dialogFooter: { flexDirection: 'row', padding: 16, gap: 12, backgroundColor: '#F9FAFB' },
-  dialogButtonPrimary: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#4F46E5', alignItems: 'center' },
-  dialogButtonSecondary: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#E5E7EB', alignItems: 'center' },
-  dialogButtonDanger: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#EF4444', alignItems: 'center' },
-  dialogButtonTextPrimary: { fontSize: 16, fontWeight: '600', color: 'white' },
-  dialogButtonTextSecondary: { fontSize: 16, fontWeight: '600', color: '#374151' },
+  dialogMessage: { fontSize: 15, fontFamily: fonts.regular, color: colors.inkMuted, textAlign: 'center', lineHeight: 22 },
+  dialogFooter: { flexDirection: 'row', padding: 16, gap: 12, backgroundColor: colors.surfaceAlt },
+  dialogButtonPrimary: { flex: 1, padding: 14, borderRadius: radii.md, backgroundColor: colors.primary, alignItems: 'center' },
+  dialogButtonSecondary: { flex: 1, padding: 14, borderRadius: radii.md, backgroundColor: colors.chip, alignItems: 'center' },
+  dialogButtonDanger: { flex: 1, padding: 14, borderRadius: radii.md, backgroundColor: colors.danger, alignItems: 'center' },
+  dialogButtonTextPrimary: { fontSize: 16, fontFamily: fonts.semibold, color: colors.surface },
+  dialogButtonTextSecondary: { fontSize: 16, fontFamily: fonts.medium, color: colors.inkMuted },
 });
+

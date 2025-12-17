@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import AppBackground from '../components/AppBackground';
+import { syncCalendarNotifications } from '../utils/notifications';
+import { colors, fonts, radii, shadows } from '../theme/tokens';
 
 export default function CalendarioScreen() {
   const [loading, setLoading] = useState(true);
@@ -30,7 +33,13 @@ export default function CalendarioScreen() {
 
       if (tab === 'institucional') {
         const response = await api.get(`/calendario/eventos?semestre=${semestreSeleccionado}`);
-        setEventosInstitucionales(response.data.eventos || []);
+        const eventos = response.data.eventos || [];
+        setEventosInstitucionales(eventos);
+        try {
+          await syncCalendarNotifications(eventos);
+        } catch (error) {
+          console.warn('No se pudieron programar notificaciones', error);
+        }
       } else {
         const response = await api.get('/tareas?pendientes=true');
         const tareas = response.data.tareas || [];
@@ -82,15 +91,15 @@ export default function CalendarioScreen() {
 
   const getEventoColor = (tipo) => {
     const colores = {
-      inicio_clases: '#10B981',
-      fin_clases: '#8B5CF6',
-      parcial: '#F59E0B',
-      final: '#EF4444',
-      cancelacion: '#F97316',
-      inscripcion: '#3B82F6',
-      festivo: '#EC4899',
+      inicio_clases: colors.success,
+      fin_clases: colors.primary,
+      parcial: colors.warning,
+      final: colors.danger,
+      cancelacion: colors.accent,
+      inscripcion: colors.info,
+      festivo: colors.accent,
     };
-    return colores[tipo] || '#6B7280';
+    return colores[tipo] || colors.inkSubtle;
   };
 
   const esEventoProximo = (fechaStr) => {
@@ -125,7 +134,7 @@ export default function CalendarioScreen() {
             )}
             
             <View style={styles.eventoFecha}>
-              <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+              <Ionicons name="calendar-outline" size={14} color={colors.inkMuted} />
               <Text style={styles.eventoFechaTexto}>
                 {formatearFechaCompleta(evento.fecha_inicio)}
                 {evento.fecha_fin && ` - ${formatearFechaCompleta(evento.fecha_fin)}`}
@@ -136,7 +145,7 @@ export default function CalendarioScreen() {
         
         {proximo && (
           <View style={styles.proximoBadge}>
-            <Ionicons name="time-outline" size={14} color="#F59E0B" />
+            <Ionicons name="time-outline" size={14} color={colors.warning} />
             <Text style={styles.proximoTexto}>Próximamente</Text>
           </View>
         )}
@@ -150,7 +159,7 @@ export default function CalendarioScreen() {
     if (fechas.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name="calendar-outline" size={64} color="#D1D5DB" />
+          <Ionicons name="calendar-outline" size={64} color={colors.borderStrong} />
           <Text style={styles.emptyText}>No hay tareas programadas</Text>
           <Text style={styles.emptySubtext}>¡Perfecto! Estás al día</Text>
         </View>
@@ -182,18 +191,18 @@ export default function CalendarioScreen() {
                   
                   <View style={styles.tareaFooter}>
                     <View style={styles.tareaTag}>
-                      <Ionicons name="time-outline" size={12} color="#6B7280" />
+                      <Ionicons name="time-outline" size={12} color={colors.inkMuted} />
                       <Text style={styles.tareaTagTexto}>{tarea.horas_estimadas}h</Text>
                     </View>
                     
                     <View style={styles.tareaTag}>
-                      <Ionicons name="flame-outline" size={12} color="#F59E0B" />
+                      <Ionicons name="flame-outline" size={12} color={colors.warning} />
                       <Text style={styles.tareaTagTexto}>Dif. {tarea.dificultad}/5</Text>
                     </View>
                     
                     {tarea.hora_limite && (
                       <View style={styles.tareaTag}>
-                        <Ionicons name="alarm-outline" size={12} color="#6B7280" />
+                        <Ionicons name="alarm-outline" size={12} color={colors.inkMuted} />
                         <Text style={styles.tareaTagTexto}>{tarea.hora_limite}</Text>
                       </View>
                     )}
@@ -211,7 +220,7 @@ export default function CalendarioScreen() {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color={colors.primary} />
         </View>
       );
     }
@@ -258,7 +267,7 @@ export default function CalendarioScreen() {
           <View style={styles.eventosContainer}>
             {eventosInstitucionales.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="calendar-outline" size={64} color="#D1D5DB" />
+                <Ionicons name="calendar-outline" size={64} color={colors.borderStrong} />
                 <Text style={styles.emptyText}>No hay eventos programados</Text>
               </View>
             ) : (
@@ -285,6 +294,7 @@ export default function CalendarioScreen() {
 
   return (
     <View style={styles.container}>
+      <AppBackground />
       {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
@@ -294,7 +304,7 @@ export default function CalendarioScreen() {
           <Ionicons
             name={tab === 'institucional' ? 'school' : 'school-outline'}
             size={20}
-            color={tab === 'institucional' ? '#4F46E5' : '#9CA3AF'}
+            color={tab === 'institucional' ? colors.primary : colors.inkSubtle}
           />
           <Text style={[styles.tabText, tab === 'institucional' && styles.tabTextoActivo]}>
             Institucional
@@ -308,7 +318,7 @@ export default function CalendarioScreen() {
           <Ionicons
             name={tab === 'tareas' ? 'checkbox' : 'checkbox-outline'}
             size={20}
-            color={tab === 'tareas' ? '#4F46E5' : '#9CA3AF'}
+            color={tab === 'tareas' ? colors.primary : colors.inkSubtle}
           />
           <Text style={[styles.tabText, tab === 'tareas' && styles.tabTextoActivo]}>
             Mis Tareas
@@ -325,18 +335,20 @@ export default function CalendarioScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
+    position: 'relative',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   tab: {
     flex: 1,
@@ -348,16 +360,16 @@ const styles = StyleSheet.create({
   },
   tabActivo: {
     borderBottomWidth: 2,
-    borderBottomColor: '#4F46E5',
+    borderBottomColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#9CA3AF',
+    fontFamily: fonts.medium,
+    color: colors.inkSubtle,
   },
   tabTextoActivo: {
-    color: '#4F46E5',
-    fontWeight: '600',
+    color: colors.primary,
+    fontFamily: fonts.semibold,
   },
   scrollView: {
     flex: 1,
@@ -370,39 +382,37 @@ const styles = StyleSheet.create({
   semestreButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radii.sm,
+    backgroundColor: colors.chip,
     alignItems: 'center',
   },
   semestreButtonActivo: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
   },
   semestreButtonTexto: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontFamily: fonts.semibold,
+    color: colors.inkMuted,
   },
   semestreButtonTextoActivo: {
-    color: 'white',
+    color: colors.surface,
   },
   eventosContainer: {
     padding: 16,
     paddingTop: 0,
   },
   eventoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   eventoProximo: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.accentSoft,
   },
   eventoHeader: {
     flexDirection: 'row',
@@ -423,13 +433,14 @@ const styles = StyleSheet.create({
   },
   eventoNombre: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontFamily: fonts.semibold,
+    color: colors.ink,
     marginBottom: 4,
   },
   eventoDescripcion: {
     fontSize: 14,
-    color: '#6B7280',
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
     marginBottom: 8,
   },
   eventoFecha: {
@@ -439,13 +450,14 @@ const styles = StyleSheet.create({
   },
   eventoFechaTexto: {
     fontSize: 13,
-    color: '#6B7280',
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
   },
   proximoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -454,8 +466,8 @@ const styles = StyleSheet.create({
   },
   proximoTexto: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#F59E0B',
+    fontFamily: fonts.semibold,
+    color: colors.warning,
   },
   tareasContainer: {
     padding: 16,
@@ -470,40 +482,38 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: 2,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   fechaHeaderHoy: {
-    borderBottomColor: '#4F46E5',
+    borderBottomColor: colors.primary,
   },
   fechaTitulo: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontFamily: fonts.semibold,
+    color: colors.ink,
   },
   fechaTituloHoy: {
-    color: '#4F46E5',
+    color: colors.primary,
   },
   fechaBadge: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.glowSky,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   fechaBadgeTexto: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#4F46E5',
+    fontFamily: fonts.semibold,
+    color: colors.primary,
   },
   tareaCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: 12,
     marginBottom: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   tareaHeader: {
     flexDirection: 'row',
@@ -511,7 +521,7 @@ const styles = StyleSheet.create({
   },
   tareaIndicador: {
     width: 4,
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   tareaContent: {
@@ -519,13 +529,14 @@ const styles = StyleSheet.create({
   },
   tareaTitulo: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontFamily: fonts.semibold,
+    color: colors.ink,
     marginBottom: 4,
   },
   tareaCurso: {
     fontSize: 13,
-    color: '#6B7280',
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
     marginBottom: 8,
   },
   tareaFooter: {
@@ -536,7 +547,7 @@ const styles = StyleSheet.create({
   tareaTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.chip,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -544,8 +555,8 @@ const styles = StyleSheet.create({
   },
   tareaTagTexto: {
     fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
   },
   emptyState: {
     alignItems: 'center',
@@ -553,13 +564,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6B7280',
+    fontFamily: fonts.semibold,
+    color: colors.inkMuted,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9CA3AF',
+    fontFamily: fonts.regular,
+    color: colors.inkSubtle,
     marginTop: 8,
   },
 });

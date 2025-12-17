@@ -11,6 +11,8 @@ import {
   StyleSheet, Alert, KeyboardAvoidingView, Platform 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AppBackground from '../components/AppBackground';
+import { colors, fonts, radii, shadows } from '../theme/tokens';
 
 export default function RegistroScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -64,9 +66,10 @@ export default function RegistroScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <AppBackground />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Ionicons name="person-add-outline" size={60} color="#4F46E5" />
+          <Ionicons name="person-add-outline" size={60} color={colors.primary} />
           <Text style={styles.title}>Crear Cuenta</Text>
           <Text style={styles.subtitle}>Únete a UniPlanner</Text>
         </View>
@@ -81,7 +84,7 @@ export default function RegistroScreen({ navigation }) {
                 placeholder="Juan"
                 value={form.nombre}
                 onChangeText={(t) => handleChange('nombre', t)}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.inkSubtle}
               />
             </View>
             <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
@@ -91,7 +94,7 @@ export default function RegistroScreen({ navigation }) {
                 placeholder="Pérez"
                 value={form.apellido}
                 onChangeText={(t) => handleChange('apellido', t)}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.inkSubtle}
               />
             </View>
           </View>
@@ -106,7 +109,7 @@ export default function RegistroScreen({ navigation }) {
               autoCapitalize="none"
               value={form.email}
               onChangeText={(t) => handleChange('email', t)}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.inkSubtle}
             />
           </View>
 
@@ -120,7 +123,7 @@ export default function RegistroScreen({ navigation }) {
                 secureTextEntry={!showPassword}
                 value={form.password}
                 onChangeText={(t) => handleChange('password', t)}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.inkSubtle}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -129,7 +132,7 @@ export default function RegistroScreen({ navigation }) {
                 <Ionicons
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={20}
-                  color="#9CA3AF"
+                  color={colors.inkSubtle}
                 />
               </TouchableOpacity>
             </View>
@@ -144,7 +147,7 @@ export default function RegistroScreen({ navigation }) {
               keyboardType="numeric"
               value={form.semestre_actual}
               onChangeText={(t) => handleChange('semestre_actual', t)}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.inkSubtle}
             />
           </View>
 
@@ -172,7 +175,7 @@ export default function RegistroScreen({ navigation }) {
 
           {/* Aviso importante */}
           <View style={styles.avisoContainer}>
-            <Ionicons name="information-circle" size={24} color="#3B82F6" />
+            <Ionicons name="information-circle" size={24} color={colors.info} />
             <Text style={styles.avisoTexto}>
               En el siguiente paso deberás seleccionar las materias que has aprobado y las que estás cursando actualmente.
             </Text>
@@ -197,44 +200,46 @@ export default function RegistroScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: colors.background, position: 'relative' },
   scrollContent: { padding: 24, flexGrow: 1, justifyContent: 'center' },
   header: { alignItems: 'center', marginBottom: 30 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginTop: 10 },
-  subtitle: { fontSize: 16, color: '#6B7280' },
+  title: { fontSize: 24, fontFamily: fonts.bold, color: colors.ink, marginTop: 10 },
+  subtitle: { fontSize: 16, fontFamily: fonts.medium, color: colors.inkMuted },
   form: { width: '100%' },
   row: { flexDirection: 'row', marginBottom: 16 },
   inputGroup: { marginBottom: 16 },
   label: { 
     fontSize: 14, 
-    fontWeight: '600', 
-    color: '#374151', 
+    fontFamily: fonts.medium, 
+    color: colors.inkMuted, 
     marginBottom: 8 
   },
   input: {
-    backgroundColor: 'white', 
-    borderRadius: 12, 
+    backgroundColor: colors.surface, 
+    borderRadius: radii.md, 
     paddingHorizontal: 16, 
     height: 50, 
     borderWidth: 1, 
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     fontSize: 16,
-    color: '#1F2937'
+    fontFamily: fonts.regular,
+    color: colors.ink
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     paddingHorizontal: 16,
     height: 50,
   },
   passwordInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1F2937',
+    fontFamily: fonts.regular,
+    color: colors.ink,
   },
   eyeButton: {
     padding: 4,
@@ -242,47 +247,45 @@ const styles = StyleSheet.create({
   optionButton: {
     flex: 1, 
     padding: 10, 
-    borderRadius: 8, 
+    borderRadius: radii.sm, 
     borderWidth: 1, 
-    borderColor: '#D1D5DB', 
+    borderColor: colors.borderStrong, 
     alignItems: 'center', 
-    marginHorizontal: 4
+    marginHorizontal: 4,
+    backgroundColor: colors.surface,
   },
-  optionSelected: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
-  optionText: { color: '#6B7280' },
-  optionTextSelected: { color: 'white', fontWeight: 'bold' },
+  optionSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  optionText: { color: colors.inkMuted, fontFamily: fonts.medium },
+  optionTextSelected: { color: colors.surface, fontFamily: fonts.semibold },
   avisoContainer: {
     flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.glowSky,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     marginBottom: 16,
     gap: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: colors.info,
   },
   avisoTexto: {
     flex: 1,
     fontSize: 13,
-    color: '#1E40AF',
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
     lineHeight: 18,
   },
   button: {
-    backgroundColor: '#4F46E5', 
-    borderRadius: 12, 
+    backgroundColor: colors.primary, 
+    borderRadius: radii.md, 
     height: 56,
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'center',
     marginTop: 24, 
-    shadowColor: '#4F46E5', 
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3, 
-    shadowRadius: 8, 
-    elevation: 4, 
+    ...shadows.soft,
     gap: 8,
   },
-  buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  buttonText: { color: colors.surface, fontSize: 16, fontFamily: fonts.semibold },
   linkButton: { marginTop: 20, alignItems: 'center' },
-  linkText: { color: '#4F46E5', fontWeight: '500' }
+  linkText: { color: colors.primary, fontFamily: fonts.medium }
 });

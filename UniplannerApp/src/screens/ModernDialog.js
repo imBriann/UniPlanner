@@ -20,6 +20,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, fonts, radii, shadows } from '../theme/tokens';
 
 const ModernDialog = ({ 
   visible, 
@@ -27,7 +28,10 @@ const ModernDialog = ({
   title, 
   message, 
   type = 'info', 
-  onConfirm 
+  onConfirm,
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  closeText = 'Entendido',
 }) => {
   if (!visible) return null;
 
@@ -35,27 +39,27 @@ const ModernDialog = ({
   const config = {
     info: {
       icon: 'information-circle',
-      color: '#3B82F6',
-      bg: '#EFF6FF',
-      iconBg: '#DBEAFE',
+      color: colors.info,
+      bg: colors.glowSky,
+      iconBg: `${colors.info}22`,
     },
     success: {
       icon: 'checkmark-circle',
-      color: '#10B981',
-      bg: '#D1FAE5',
-      iconBg: '#A7F3D0',
+      color: colors.success,
+      bg: colors.glowTeal,
+      iconBg: `${colors.success}22`,
     },
     warning: {
       icon: 'alert-circle',
-      color: '#F59E0B',
-      bg: '#FEF3C7',
-      iconBg: '#FDE68A',
+      color: colors.warning,
+      bg: colors.accentSoft,
+      iconBg: `${colors.warning}22`,
     },
     error: {
       icon: 'close-circle',
-      color: '#EF4444',
-      bg: '#FEE2E2',
-      iconBg: '#FECACA',
+      color: colors.danger,
+      bg: `${colors.danger}14`,
+      iconBg: `${colors.danger}22`,
     },
   };
 
@@ -93,7 +97,7 @@ const ModernDialog = ({
                   onPress={onClose}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.buttonTextSecondary}>Cancelar</Text>
+                  <Text style={styles.buttonTextSecondary}>{cancelText}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.buttonPrimary, { backgroundColor: color }]}
@@ -103,7 +107,7 @@ const ModernDialog = ({
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.buttonTextPrimary}>Confirmar</Text>
+                  <Text style={styles.buttonTextPrimary}>{confirmText}</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -113,7 +117,7 @@ const ModernDialog = ({
                 onPress={onClose}
                 activeOpacity={0.7}
               >
-                <Text style={styles.buttonTextPrimary}>Entendido</Text>
+                <Text style={styles.buttonTextPrimary}>{closeText}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -126,22 +130,18 @@ const ModernDialog = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   container: {
-    backgroundColor: 'white',
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     width: '100%',
     maxWidth: 400,
     overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    ...shadows.float,
   },
   header: {
     padding: 24,
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontFamily: fonts.semibold,
+    color: colors.ink,
     textAlign: 'center',
   },
   body: {
@@ -167,7 +167,8 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 15,
-    color: '#6B7280',
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -175,30 +176,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonPrimary: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
   },
   buttonSecondary: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.chip,
   },
   buttonTextPrimary: {
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontFamily: fonts.semibold,
+    color: colors.surface,
   },
   buttonTextSecondary: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
   },
 });
 

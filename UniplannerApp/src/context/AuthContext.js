@@ -15,6 +15,8 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [storedSession, setStoredSession] = useState(null);
 
   // 1. Cargar sesión guardada al iniciar la app
   useEffect(() => {
@@ -23,9 +25,17 @@ export const AuthProvider = ({ children }) => {
         const token = await SecureStore.getItemAsync('user_token');
         // Aquí podrías guardar también los datos del usuario en un string JSON
         const userData = await SecureStore.getItemAsync('user_data');
+        const biometricFlag = await SecureStore.getItemAsync('biometric_enabled');
+        const biometricActive = biometricFlag === 'true';
+
+        setBiometricEnabled(biometricActive);
         
         if (token && userData) {
-          setUser(JSON.parse(userData));
+          if (biometricActive) {
+            setStoredSession({ token, user: JSON.parse(userData) });
+          } else {
+            setUser(JSON.parse(userData));
+          }
         }
       } catch (e) {
         console.error("Error cargando sesión:", e);
@@ -45,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       const token = result.data.token;
       
       setUser(userData);
+      setStoredSession(null);
       
       // Guardar en el celular para persistencia
       await SecureStore.setItemAsync('user_token', token);
@@ -76,8 +87,37 @@ export const AuthProvider = ({ children }) => {
   // 4. Función LOGOUT
   const logout = async () => {
     setUser(null);
+    setStoredSession(null);
     await SecureStore.deleteItemAsync('user_token');
     await SecureStore.deleteItemAsync('user_data');
+  };
+
+  const setBiometricPreference = async (enabled) => {
+    setBiometricEnabled(enabled);
+    await SecureStore.setItemAsync('biometric_enabled', enabled ? 'true' : 'false');
+
+    if (!enabled && storedSession && !user) {
+      setUser(storedSession.user);
+      setStoredSession(null);
+    }
+  };
+
+  const loginWithBiometrics = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('user_token');
+      const userData = await SecureStore.getItemAsync('user_data');
+
+      if (!token || !userData) {
+        return { success: false, error: 'No hay sesion guardada' };
+      }
+
+      setUser(JSON.parse(userData));
+      setStoredSession(null);
+      return { success: true };
+    } catch (error) {
+      console.error('Error iniciando sesion biometrica:', error);
+      return { success: false, error: 'No se pudo iniciar sesion' };
+    }
   };
 
   // Exportamos todo en el objeto value
@@ -87,7 +127,11 @@ export const AuthProvider = ({ children }) => {
       loading, 
       login,    // <--- ¡AQUÍ ESTÁ LA CLAVE! Ahora sí existe 'login'
       register, 
-      logout 
+      logout,
+      biometricEnabled,
+      setBiometricPreference,
+      loginWithBiometrics,
+      hasStoredSession: Boolean(storedSession),
     }}>
       {children}
     </AuthContext.Provider>
