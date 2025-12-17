@@ -96,6 +96,20 @@ export const AuthProvider = ({ children }) => {
     setBiometricEnabled(enabled);
     await SecureStore.setItemAsync('biometric_enabled', enabled ? 'true' : 'false');
 
+    if (enabled) {
+      try {
+        const token = await SecureStore.getItemAsync('user_token');
+        const userData = await SecureStore.getItemAsync('user_data');
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          setStoredSession({ token, user: parsedUser });
+        }
+      } catch (error) {
+        console.error('Error preparando sesion biometrica:', error);
+      }
+      return;
+    }
+
     if (!enabled && storedSession && !user) {
       setUser(storedSession.user);
       setStoredSession(null);

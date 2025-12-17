@@ -41,7 +41,7 @@ export default function LoginScreen({ navigation }) {
 
   useEffect(() => {
     const checkBiometric = async () => {
-      if (!biometricEnabled || !hasStoredSession) {
+      if (!biometricEnabled) {
         setBiometricReady(false);
         return;
       }
@@ -101,6 +101,15 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleBiometricLogin = async () => {
+    if (!hasStoredSession) {
+      showDialog({
+        title: 'Sesion no disponible',
+        message: 'Inicia sesion una vez para activar el acceso por huella.',
+        type: 'warning',
+      });
+      return;
+    }
+
     const auth = await LocalAuthentication.authenticateAsync({
       promptMessage: 'Ingresar con huella',
       fallbackLabel: 'Usar contrasena',
