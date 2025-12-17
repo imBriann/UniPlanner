@@ -6,8 +6,8 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // URL de la API - CAMBIAR SEGÚN TU CONFIGURACIÓN
-//const API_URL = 'https://uniplanner-api.onrender.com/api/'; 
-const API_URL = 'http://192.168.0.7:5000/api/'; // Desarrollo local
+const API_URL = 'https://uniplanner-api.onrender.com/api/'; //Backend desplegado en render
+//const API_URL = 'http://192.168.0.7:5000/api/'; // Desarrollo local (Modificar a su direccion ipv4 ejem: "http://192.168.0.7:5000/api/")
 
 // Crear instancia de Axios
 const api = axios.create({
